@@ -58,8 +58,12 @@ async function getAccessToken() {
 // Response:  { url, path }
 
 app.post('/api/upload', async (req, res) => {
+  console.log('[upload] body keys:', req.body ? Object.keys(req.body) : 'NO BODY');
   try {
-    const { fileName = 'image.jpg', mimeType = 'image/jpeg', data, slug = 'geral' } = req.body;
+    const body = req.body || {};
+    const { fileName = 'image.jpg', mimeType = 'image/jpeg', data, slug = 'geral' } = body;
+
+    console.log('[upload] fileName:', fileName, '| slug:', slug, '| data length:', data?.length);
 
     if (!data) return res.status(400).json({ error: 'Campo "data" (base64) obrigatório' });
 
@@ -270,6 +274,12 @@ app.get('/setup/callback', async (req, res) => {
       <a href="/setup" style="color:#60a5fa">← Tentar novamente</a>
     </body></html>`);
   }
+});
+
+// ── Error handler global — garante que erros do Express virem como JSON ──────
+app.use((err, req, res, _next) => {
+  console.error('[EXPRESS ERROR]', err.message);
+  res.status(err.status || 500).json({ error: err.message });
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
