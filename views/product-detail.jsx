@@ -102,11 +102,6 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
               </div>
             </div>
 
-            <div className="mt-6 grid grid-cols-2 gap-2">
-              <PrimaryBtn icon={<Id name="Send" size={13} />}>Solicitar Orçamento</PrimaryBtn>
-              <GhostBtn icon={<Id name="BookmarkPlus" size={13} />}>Salvar</GhostBtn>
-            </div>
-
             <div className="mt-4 flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-[#0F1B3D]/50">
               <span className="flex items-center gap-1.5"><Id name="ShieldCheck" size={11} /> Verificado</span>
               <span className="flex items-center gap-1.5"><Id name="Truck" size={11} /> Entrega nacional</span>
@@ -135,7 +130,7 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
           {activeTab === 'descricao' && (
             <div className="space-y-3">
               <p>{product.long}</p>
-              <p>Produto comercializado pela {entity.name}, parte do conglomerado {entity.holdingName}. Disponível mediante solicitação de orçamento; condições especiais para volumes corporativos.</p>
+              <p>Produto comercializado pela {entity.name}, parte do conglomerado {entity.holdingName}.</p>
             </div>
           )}
           {activeTab === 'specs' && (
