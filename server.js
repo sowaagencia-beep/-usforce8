@@ -14,8 +14,11 @@ const PORT = process.env.PORT || 3333;
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
-app.use(express.json({ limit: '25mb' }));   // recebe base64 de até ~18 MB de imagem
+app.use(express.json({ limit: '25mb' }));
 app.use(express.static(__dirname));
+
+// Serve USFORCE8.html na raiz
+app.get('/', (_req, res) => res.sendFile(path.join(__dirname, 'USFORCE8.html')));
 
 // ── Gerenciamento de token Dropbox ────────────────────────────────────────────
 
