@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>USFORCE8 — Plataforma de Gestão Multi-Marca</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.js"></script>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<!-- Supabase JS SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+
+<!-- Configurações públicas (Supabase URL + anon key) -->
+<script src="config.js"></script>
+
+<style>
+  :root { color-scheme: light; }
+  html, body { font-family: 'Inter', system-ui, sans-serif; color: #0F1B3D; }
+  body { background: #F4F6FB; }
+  .font-display { font-family: 'Barlow Condensed', sans-serif; }
+  ::placeholder { color: rgba(15,27,61,0.35); }
+  svg.lucide { stroke-width: 1.75; }
+</style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script>
+    (function () {
+      // lucide UMD v0.469 exposes each icon as an OWN property on window.lucide,
+      // shaped [tagName, attrs, childrenArray] (children = [[tag, attrs], ...]).
+      const orig = window.lucide || {};
+      function makeIcon(data) {
+        return function LucideIcon(props) {
+          const { size = 18, color = 'currentColor', strokeWidth = 1.75, className = '', ...rest } = props || {};
+          const baseAttrs = {
+            xmlns: 'http://www.w3.org/2000/svg',
+            width: size, height: size, viewBox: '0 0 24 24',
+            fill: 'none', stroke: color, strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round',
+            className: 'lucide ' + className, ...rest,
+          };
+          let children = [];
+          if (Array.isArray(data) && data.length >= 3 && Array.isArray(data[2])) {
+            children = data[2].map((c, i) => React.createElement(c[0], { key: i, ...c[1] }));
+          } else if (data && data.iconNode) {
+            children = data.iconNode.map((c, i) => React.createElement(c[0], { key: i, ...c[1] }));
+          }
+          return React.createElement('svg', baseAttrs, ...children);
+        };
+      }
+      Object.keys(orig).forEach((k) => {
+        const v = orig[k];
+        if (Array.isArray(v) && v.length >= 3 && Array.isArray(v[2])) {
+          orig[k] = makeIcon(v);
+        } else if (v && v.iconNode) {
+          orig[k] = makeIcon(v);
+        }
+      });
+      window.lucide = new Proxy(orig, {
+        get(target, name) {
+          if (name in target) return target[name];
+          if (typeof name === 'symbol') return undefined;
+          return function Missing() { return null; };
+        },
+        has() { return true; },
+      });
+    })();
+  </script>
+
+  <script type="text/babel" src="data.jsx"></script>
+  <script type="text/babel" src="brand.jsx"></script>
+  <script type="text/babel" src="views/login.jsx"></script>
+  <script type="text/babel" src="views/admin.jsx"></script>
+  <script type="text/babel" src="views/product-form.jsx"></script>
+  <script type="text/babel" src="views/showcase.jsx"></script>
+  <script type="text/babel" src="views/product-detail.jsx"></script>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // ── Supabase client (null se não configurado) ─────────────────────────────
+    const _cfg = window.USFORCE_CONFIG?.supabase;
+    const sb   = (_cfg?.url && !_cfg.url.includes('COLE_AQUI'))
+      ? window.supabase.createClient(_cfg.url, _cfg.anonKey)
+      : null;
+
+    // ── Adaptadores DB ↔ App ──────────────────────────────────────────────────
+    const fromDb = {
+      product: (p) => ({
+        id: p.id, companySlug: p.company_slug, category: p.category,
+        name: p.name, code: p.code, short: p.short, long: p.long,
+        unitsPerBox: p.units_per_box, origin: p.origin, active: p.active,
+        sharedWith: p.shared_with || [], images: p.images || [],
+        createdAt: p.created_at,
+      }),
+    };
+    const toDb = {
+      product: (p) => ({
+        id: p.id, company_slug: p.companySlug, category: p.category,
+        name: p.name, code: p.code, short: p.short, long: p.long,
+        units_per_box: p.unitsPerBox, origin: p.origin, active: p.active,
+        shared_with: p.sharedWith, images: p.images, created_at: p.createdAt,
+      }),
+      holding: (h)  => ({ id: h.id, name: h.name }),
+      company: (c, holdingId) => ({ slug: c.slug, name: c.name, tagline: c.tagline, accent: c.accent, holding_id: holdingId }),
+      brand:   (b, companySlug) => ({ slug: b.slug, name: b.name, tagline: b.tagline, accent: b.accent, company_slug: companySlug }),
+    };
+
+    function App() {
+      const [products,   setProducts]   = useState(window.USFORCE_DATA.PRODUCTS);
+      const [holdings,   setHoldings]   = useState(window.USFORCE_DATA.HOLDINGS);
+      const [categories, setCategories] = useState(window.USFORCE_DATA.CATEGORIES);
+      const [heroImages, setHeroImages] = useState(window.USFORCE_DATA.HERO_IMAGES);
+      const [dbReady,    setDbReady]    = useState(!sb); // true immediately if no Supabase
+
+      // ── Carrega dados do Supabase na inicialização ──────────────────────────
+      useEffect(() => {
+        if (!sb) return;
+        (async () => {
+          try {
+            const [
+              { data: prods  },
+              { data: holds  },
+              { data: comps  },
+              { data: brnds  },
+              { data: cats   },
+            ] = await Promise.all([
+              sb.from('products').select('*').order('created_at', { ascending: false }),
+              sb.from('holdings').select('*'),
+              sb.from('companies').select('*'),
+              sb.from('brands').select('*'),
+              sb.from('categories').select('*'),
+            ]);
+
+            if (prods?.length)  setProducts(prods.map(fromDb.product));
+
+            if (holds?.length) {
+              const tree = holds.map(h => ({
+                id: h.id, name: h.name,
+                companies: (comps || [])
+                  .filter(c => c.holding_id === h.id)
+                  .map(c => ({
+                    slug: c.slug, name: c.name, tagline: c.tagline, accent: c.accent,
+                    brands: (brnds || [])
+                      .filter(b => b.company_slug === c.slug)
+                      .map(b => ({ slug: b.slug, name: b.name, tagline: b.tagline, accent: b.accent })),
+                  })),
+              }));
+              setHoldings(tree);
+            }
+
+            if (cats?.length) {
+              const map = {};
+              cats.forEach(c => { (map[c.entity_slug] = map[c.entity_slug] || []).push(c.name); });
+              setCategories(map);
+            }
+          } catch (e) {
+            console.warn('Supabase: usando dados locais.', e.message);
+          }
+          setDbReady(true);
+        })();
+      }, []);
+
+      const [state, setState] = useState({
+        view: 'login',
+        isAuthenticated: false,
+        selectedCompanySlug: null,
+        selectedProductId: null,
+        editingProduct: null,
+        toast: null,
+      });
+
+      const navigate = (patch) => setState(s => ({ ...s, ...patch }));
+
+      const toast = (msg, type = 'success') => {
+        setState(s => ({ ...s, toast: { type, msg } }));
+        setTimeout(() => setState(s => ({ ...s, toast: null })), 3000);
+      };
+
+      const handleLogin  = () => navigate({ view: 'admin-dashboard', isAuthenticated: true });
+      const handleLogout = () => navigate({ view: 'login', isAuthenticated: false, selectedCompanySlug: null, selectedProductId: null });
+
+      const handleNewProduct  = () => navigate({ view: 'admin-product-form', editingProduct: null });
+      const handleEditProduct = (p) => navigate({ view: 'admin-product-form', editingProduct: p });
+
+      const handleSaveProduct = async (product, publish) => {
+        setProducts(list => {
+          const exists = list.some(p => p.id === product.id);
+          if (exists) return list.map(p => p.id === product.id ? product : p);
+          return [product, ...list];
+        });
+        if (sb) {
+          const { error } = await sb.from('products').upsert(toDb.product(product));
+          if (error) console.error('Supabase save product:', error.message);
+        }
+        navigate({ view: 'admin-dashboard', editingProduct: null });
+        toast(publish ? 'Produto publicado com sucesso' : 'Rascunho salvo');
+      };
+
+      // Add a new top-level holding
+      const handleCreateHolding = async (holding) => {
+        setHoldings(list => [...list, { ...holding, companies: [] }]);
+        if (sb) {
+          const { error } = await sb.from('holdings').insert(toDb.holding(holding));
+          if (error) console.error('Supabase save holding:', error.message);
+        }
+        toast(`Holding ${holding.name} cadastrada`);
+      };
+
+      // Add a company under a holding
+      const handleCreateCompany = async (holdingId, company, cats) => {
+        setHoldings(list => list.map(h =>
+          h.id === holdingId
+            ? { ...h, companies: [...h.companies, { ...company, brands: [] }] }
+            : h
+        ));
+        const finalCats = cats.length ? cats : ['Geral'];
+        setCategories(c => ({ ...c, [company.slug]: finalCats }));
+        if (sb) {
+          await sb.from('companies').insert(toDb.company(company, holdingId));
+          await sb.from('categories').insert(finalCats.map(name => ({ entity_slug: company.slug, name })));
+        }
+        toast(`Empresa ${company.name} cadastrada`);
+      };
+
+      // Add a brand under a company
+      const handleCreateBrand = async (companySlug, brand, cats) => {
+        setHoldings(list => list.map(h => ({
+          ...h,
+          companies: h.companies.map(c =>
+            c.slug === companySlug
+              ? { ...c, brands: [...(c.brands || []), brand] }
+              : c
+          ),
+        })));
+        const finalCats = cats.length ? cats : ['Geral'];
+        setCategories(c => ({ ...c, [brand.slug]: finalCats }));
+        if (sb) {
+          await sb.from('brands').insert(toDb.brand(brand, companySlug));
+          await sb.from('categories').insert(finalCats.map(name => ({ entity_slug: brand.slug, name })));
+        }
+        toast(`Marca ${brand.name} cadastrada`);
+      };
+
+      const handleUpdateHero = (slug, hero) => {
+        setHeroImages(h => ({ ...h, [slug]: hero }));
+        toast('Capa atualizada');
+      };
+
+      const handleSelectProduct  = (p) => navigate({ view: 'public-product-detail', selectedProductId: p.id, selectedCompanySlug: p.companySlug });
+      const handleBackToAdmin    = () => navigate({ view: 'admin-dashboard', selectedProductId: null });
+
+      useEffect(() => {
+        if (!state.isAuthenticated && state.view.startsWith('admin-')) {
+          navigate({ view: 'login' });
+        }
+      }, [state.isAuthenticated, state.view]);
+
+      const selectedProduct = state.selectedProductId ? products.find(p => p.id === state.selectedProductId) : null;
+
+      // Tela de carregamento enquanto busca dados do Supabase
+      if (!dbReady) return (
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', background:'#0F1B3D', flexDirection:'column', gap:'16px' }}>
+          <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" className="animate-spin">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <span style={{ color:'rgba(255,255,255,0.5)', fontSize:'11px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.2em' }}>
+            Carregando USFORCE8…
+          </span>
+        </div>
+      );
+
+      return (
+        <>
+          {state.view === 'login' && <LoginView onLogin={handleLogin} />}
+
+          {state.view === 'admin-dashboard' && (
+            <AdminView
+              products={products} holdings={holdings} categories={categories}
+              onNavigate={navigate} onLogout={handleLogout}
+              onNewProduct={handleNewProduct} onEditProduct={handleEditProduct}
+              onCreateHolding={handleCreateHolding}
+              onCreateCompany={handleCreateCompany}
+              onCreateBrand={handleCreateBrand}
+            />
+          )}
+
+          {state.view === 'admin-product-form' && (
+            <ProductFormView
+              initialProduct={state.editingProduct}
+              holdings={holdings} categories={categories}
+              onCancel={() => navigate({ view: 'admin-dashboard', editingProduct: null })}
+              onSave={handleSaveProduct} onLogout={handleLogout}
+            />
+          )}
+
+          {state.view === 'public-showcase' && state.selectedCompanySlug && (
+            <PublicShowcaseView
+              companySlug={state.selectedCompanySlug}
+              products={products} holdings={holdings} categories={categories}
+              heroImage={heroImages[state.selectedCompanySlug]}
+              onSelectProduct={handleSelectProduct}
+              onBackToAdmin={handleBackToAdmin}
+              onUpdateHero={handleUpdateHero}
+              fromAdmin={state.isAuthenticated}
+            />
+          )}
+
+          {state.view === 'public-product-detail' && selectedProduct && (
+            <PublicProductDetailView
+              product={selectedProduct} products={products} holdings={holdings}
+              onBack={() => navigate({ view: 'public-showcase', selectedCompanySlug: state.selectedCompanySlug })}
+              onSelectProduct={handleSelectProduct}
+              onBackToAdmin={handleBackToAdmin}
+              fromAdmin={state.isAuthenticated}
+            />
+          )}
+
+          {state.toast && (
+            <div className="fixed bottom-6 right-6 z-50 bg-[#0F1B3D] text-white px-5 py-3 shadow-xl flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em]"
+                 style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)' }}>
+              <span className="h-2 w-2 bg-emerald-400" />
+              {state.toast.msg}
+            </div>
+          )}
+        </>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

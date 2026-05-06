@@ -1,0 +1,22 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente com segredos (Dropbox tokens)
+.env
+
+# Arquivos temporários do editor
+*.tmp.*
+*.swp
+*.DS_Store
+Thumbs.db
+
+# Uploads locais
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Build
+dist/
+.netlify/

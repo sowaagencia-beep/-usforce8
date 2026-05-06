@@ -1,0 +1,30 @@
+[build]
+  publish = "."
+  functions = "netlify/functions"
+
+[dev]
+  port = 3333
+  targetPort = 3333
+
+# Redireciona /api/* para as Netlify Functions
+[[redirects]]
+  from = "/api/upload"
+  to   = "/.netlify/functions/upload"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from = "/api/dropbox/status"
+  to   = "/.netlify/functions/dropbox-status"
+  status = 200
+  force  = true
+
+# Força HTTPS
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "SAMEORIGIN"
+    X-Content-Type-Options = "nosniff"
+
+[functions]
+  node_bundler = "esbuild"
