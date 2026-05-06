@@ -2,6 +2,11 @@
   publish = "."
   functions = "netlify/functions"
 
+[[redirects]]
+  from = "/"
+  to   = "/USFORCE8.html"
+  status = 200
+
 [dev]
   port = 3333
   targetPort = 3333
