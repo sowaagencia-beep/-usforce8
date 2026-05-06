@@ -114,10 +114,8 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
       : [...form.sharedWith, slug]);
   };
 
-  // URL da function: local usa Express, produção usa Netlify Function diretamente
-  const UPLOAD_URL = window.location.hostname === 'localhost'
-    ? '/api/upload'
-    : '/.netlify/functions/upload';
+  // Express serve /api/upload tanto local quanto no Render
+  const UPLOAD_URL = '/api/upload';
 
   // Converte File → base64
   const toBase64 = (file) => new Promise((resolve, reject) => {
