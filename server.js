@@ -146,6 +146,18 @@ app.delete('/api/upload', async (req, res) => {
   }
 });
 
+// ── GET /api/test — diagnóstico rápido ───────────────────────────────────────
+
+app.get('/api/test', (_req, res) => {
+  res.json({
+    ok:      true,
+    hasKey:  !!process.env.DROPBOX_APP_KEY,
+    hasSecret: !!process.env.DROPBOX_APP_SECRET,
+    hasToken:  !!process.env.DROPBOX_REFRESH_TOKEN,
+    node:    process.version,
+  });
+});
+
 // ── GET /api/dropbox/status ───────────────────────────────────────────────────
 
 app.get('/api/dropbox/status', (_req, res) => {
