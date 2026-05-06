@@ -6,6 +6,9 @@
 
 const path = require('path');
 
+// Garante fetch disponível em qualquer versão do Node
+const _fetch = globalThis.fetch ?? (() => { throw new Error('fetch não disponível — use NODE_VERSION=20 no Netlify'); })();
+
 // ── Cache de token Dropbox ────────────────────────────────────────────────────
 let _token  = null;
 let _expiry = 0;
@@ -16,7 +19,7 @@ async function getToken() {
   const { DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REFRESH_TOKEN } = process.env;
   if (!DROPBOX_REFRESH_TOKEN) throw new Error('DROPBOX_REFRESH_TOKEN não configurado nas variáveis de ambiente do Netlify');
 
-  const res  = await fetch('https://api.dropbox.com/oauth2/token', {
+  const res  = await globalThis.fetch('https://api.dropbox.com/oauth2/token', {
     method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body:    new URLSearchParams({
@@ -54,21 +57,21 @@ exports.handler = async (event) => {
 
     if (!data) return { statusCode: 400, headers, body: JSON.stringify({ error: 'Campo "data" (base64) obrigatório' }) };
 
-    const buffer  = Buffer.from(data, 'base64');
-    const ext     = path.extname(fileName).toLowerCase() || '.jpg';
-    const name    = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}${ext}`;
+    const buffer   = Buffer.from(data, 'base64');
+    const ext      = path.extname(fileName).toLowerCase() || '.jpg';
+    const name     = `${Date.now()}_${Math.random().toString(36).slice(2, 7)}${ext}`;
     const safeSlug = slug.replace(/[^a-zA-Z0-9\-_]/g, '_');
-    const dbxPath = `/USFORCE8/produtos/${safeSlug}/${name}`;
+    const dbxPath  = `/USFORCE8/produtos/${safeSlug}/${name}`;
 
     const token = await getToken();
 
     // 1. Upload do arquivo
-    const uploadRes = await fetch('https://content.dropboxapi.com/2/files/upload', {
+    const uploadRes = await globalThis.fetch('https://content.dropboxapi.com/2/files/upload', {
       method:  'POST',
       headers: {
-        Authorization:    `Bearer ${token}`,
+        Authorization:     `Bearer ${token}`,
         'Dropbox-API-Arg': JSON.stringify({ path: dbxPath, mode: 'add', autorename: true, mute: true }),
-        'Content-Type':   'application/octet-stream',
+        'Content-Type':    'application/octet-stream',
       },
       body: buffer,
     });
@@ -77,7 +80,7 @@ exports.handler = async (event) => {
     if (uploaded.error_summary) throw new Error(uploaded.error_summary);
 
     // 2. Cria link público
-    const linkRes  = await fetch('https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings', {
+    const linkRes = await globalThis.fetch('https://api.dropboxapi.com/2/sharing/create_shared_link_with_settings', {
       method:  'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body:    JSON.stringify({
@@ -90,7 +93,7 @@ exports.handler = async (event) => {
     let sharedUrl  = linkData.url;
 
     if (linkData.error_summary?.includes('shared_link_already_exists')) {
-      const listRes = await fetch('https://api.dropboxapi.com/2/sharing/list_shared_links', {
+      const listRes = await globalThis.fetch('https://api.dropboxapi.com/2/sharing/list_shared_links', {
         method:  'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify({ path: uploaded.path_lower }),
