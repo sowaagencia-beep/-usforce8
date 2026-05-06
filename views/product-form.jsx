@@ -114,10 +114,15 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
       : [...form.sharedWith, slug]);
   };
 
-  // Converte File → base64 e envia como JSON para /api/upload (Express local ou Netlify Function)
+  // URL da function: local usa Express, produção usa Netlify Function diretamente
+  const UPLOAD_URL = window.location.hostname === 'localhost'
+    ? '/api/upload'
+    : '/.netlify/functions/upload';
+
+  // Converte File → base64
   const toBase64 = (file) => new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload  = () => resolve(reader.result.split(',')[1]); // remove o prefixo data:...;base64,
+    reader.onload  = () => resolve(reader.result.split(',')[1]);
     reader.onerror = reject;
     reader.readAsDataURL(file);
   });
@@ -131,7 +136,6 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
     setUploading(true);
     try {
       for (const file of files) {
-        // Verifica limite antes de processar
         const canAdd = await new Promise(resolve =>
           setForm(f => { resolve(f.images.length < 8); return f; })
         );
@@ -139,7 +143,7 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
 
         const base64 = await toBase64(file);
 
-        const res  = await fetch('/api/upload', {
+        const res = await fetch(UPLOAD_URL, {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
           body:    JSON.stringify({
@@ -149,8 +153,12 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
             slug:     form.companySlug || 'geral',
           }),
         });
-        const result = await res.json();
-        if (!res.ok) throw new Error(result.error || 'Erro no upload');
+
+        let result;
+        try { result = await res.json(); }
+        catch { throw new Error(`Servidor retornou erro ${res.status}`); }
+
+        if (!res.ok) throw new Error(result.error || `Erro ${res.status}`);
 
         setForm(f => ({
           ...f,
