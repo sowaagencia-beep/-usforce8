@@ -53,6 +53,16 @@ async function getAccessToken() {
   return _cachedToken;
 }
 
+// Helper: lê resposta como texto antes de parsear (mostra erro real do Dropbox)
+async function readJson(res) {
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`Dropbox retornou: ${text.substring(0, 300)}`);
+  }
+}
+
 // ── POST /api/upload ──────────────────────────────────────────────────────────
 // Body JSON: { fileName, mimeType, data (base64), slug }
 // Response:  { url, path }
@@ -86,7 +96,8 @@ app.post('/api/upload', async (req, res) => {
       body: buffer,
     });
 
-    const uploaded = await uploadRes.json();
+    const uploaded = await readJson(uploadRes);
+    console.log('[upload] Dropbox upload result:', JSON.stringify(uploaded).substring(0, 200));
     if (uploaded.error_summary) throw new Error(uploaded.error_summary);
 
     // 2. Cria link público
@@ -99,7 +110,7 @@ app.post('/api/upload', async (req, res) => {
       }),
     });
 
-    const linkData = await linkRes.json();
+    const linkData = await readJson(linkRes);
     let sharedUrl;
 
     if (linkData.error_summary?.includes('shared_link_already_exists')) {
@@ -108,7 +119,7 @@ app.post('/api/upload', async (req, res) => {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         body:    JSON.stringify({ path: uploaded.path_lower }),
       });
-      const list = await listRes.json();
+      const list = await readJson(listRes);
       sharedUrl   = list.links?.[0]?.url;
     } else if (linkData.error_summary) {
       throw new Error(linkData.error_summary);
