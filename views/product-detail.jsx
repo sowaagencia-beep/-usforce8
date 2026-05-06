@@ -115,8 +115,6 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
             {[
               { id: 'descricao', label: 'Descrição' },
               { id: 'specs',     label: 'Especificações' },
-              { id: 'entrega',   label: 'Entrega e Devoluções' },
-              { id: 'avaliacoes', label: 'Avaliações' },
             ].map(t => (
               <button key={t.id} onClick={() => setActiveTab(t.id)}
                 className={`px-4 py-3 text-[11px] font-bold uppercase tracking-[0.18em] border-b-2 transition-colors ${activeTab === t.id ? 'border-[#0F1B3D] text-[#0F1B3D]' : 'border-transparent text-[#0F1B3D]/50 hover:text-[#0F1B3D]'}`}>
@@ -151,16 +149,6 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
                 ))}
               </tbody>
             </table>
-          )}
-          {activeTab === 'entrega' && (
-            <div className="space-y-2">
-              <p><strong>Prazo de entrega:</strong> 5 a 12 dias úteis após confirmação do pedido, conforme localidade.</p>
-              <p><strong>Frete:</strong> Calculado mediante CEP de destino. Volumes corporativos podem ter condições especiais.</p>
-              <p><strong>Devoluções:</strong> Até 7 dias corridos após o recebimento, conforme Código de Defesa do Consumidor.</p>
-            </div>
-          )}
-          {activeTab === 'avaliacoes' && (
-            <div className="text-[#0F1B3D]/50">Este produto ainda não possui avaliações públicas.</div>
           )}
         </div>
 
