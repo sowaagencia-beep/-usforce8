@@ -215,8 +215,18 @@
         setTimeout(() => setState(s => ({ ...s, toast: null })), 3000);
       };
 
-      const handleLogin  = () => navigate({ view: 'admin-dashboard', isAuthenticated: true });
-      const handleLogout = () => navigate({ view: 'login', isAuthenticated: false, selectedCompanySlug: null, selectedProductId: null });
+      const handleLogin = async ({ email, password }) => {
+        if (!sb) return 'Banco de dados não disponível';
+        const { error } = await sb.auth.signInWithPassword({ email, password });
+        if (error) return error.message === 'Invalid login credentials'
+          ? 'E-mail ou senha incorretos'
+          : error.message;
+        navigate({ view: 'admin-dashboard', isAuthenticated: true });
+      };
+      const handleLogout = async () => {
+        if (sb) await sb.auth.signOut();
+        navigate({ view: 'login', isAuthenticated: false, selectedCompanySlug: null, selectedProductId: null });
+      };
 
       const handleNewProduct  = () => navigate({ view: 'admin-product-form', editingProduct: null });
       const handleEditProduct = (p) => navigate({ view: 'admin-product-form', editingProduct: p });
