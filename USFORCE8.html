@@ -170,16 +170,45 @@
         })();
       }, []);
 
+      // ── Roteamento por hash (#vitrine/slug) ──────────────────────────────────
+      const parseHash = () => {
+        const m = window.location.hash.match(/^#vitrine\/([^/]+)/);
+        return m ? m[1] : null;
+      };
+      const hashSlug = parseHash();
+
       const [state, setState] = useState({
-        view: 'login',
-        isAuthenticated: false,
-        selectedCompanySlug: null,
-        selectedProductId: null,
-        editingProduct: null,
-        toast: null,
+        view:               hashSlug ? 'public-showcase' : 'login',
+        isAuthenticated:    false,
+        selectedCompanySlug: hashSlug || null,
+        selectedProductId:  null,
+        editingProduct:     null,
+        toast:              null,
       });
 
-      const navigate = (patch) => setState(s => ({ ...s, ...patch }));
+      const navigate = (patch) => setState(s => {
+        const next = { ...s, ...patch };
+        // Sincroniza URL
+        if (next.view === 'public-showcase' && next.selectedCompanySlug) {
+          history.replaceState(null, '', `#vitrine/${next.selectedCompanySlug}`);
+        } else if (next.view === 'public-product-detail' && next.selectedCompanySlug) {
+          history.replaceState(null, '', `#vitrine/${next.selectedCompanySlug}`);
+        } else if (!next.view.startsWith('public-')) {
+          history.replaceState(null, '', window.location.pathname);
+        }
+        return next;
+      });
+
+      // Botão voltar do browser
+      useEffect(() => {
+        const onPop = () => {
+          const slug = parseHash();
+          if (slug) setState(s => ({ ...s, view: 'public-showcase', selectedCompanySlug: slug, selectedProductId: null }));
+          else if (!state.isAuthenticated) setState(s => ({ ...s, view: 'login' }));
+        };
+        window.addEventListener('popstate', onPop);
+        return () => window.removeEventListener('popstate', onPop);
+      }, [state.isAuthenticated]);
 
       const toast = (msg, type = 'success') => {
         setState(s => ({ ...s, toast: { type, msg } }));
@@ -257,7 +286,9 @@
       };
 
       const handleSelectProduct  = (p) => navigate({ view: 'public-product-detail', selectedProductId: p.id, selectedCompanySlug: p.companySlug });
-      const handleBackToAdmin    = () => navigate({ view: 'admin-dashboard', selectedProductId: null });
+      const handleBackToAdmin    = () => state.isAuthenticated
+        ? navigate({ view: 'admin-dashboard', selectedProductId: null })
+        : navigate({ view: 'public-showcase', selectedProductId: null });
 
       useEffect(() => {
         if (!state.isAuthenticated && state.view.startsWith('admin-')) {
