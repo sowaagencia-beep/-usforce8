@@ -86,7 +86,7 @@ function PublicShowcaseView({ companySlug, products, holdings, categories, heroI
     'sevenfish':    ['R. 1822, nº 400 – Sala 801', 'Centro, Balneário Camboriú – SC · CEP 88330-484', '+55 (47) 2033-9700'],
     '7ecom':        ['R. 1822, nº 400 – Sala 801', 'Centro, Balneário Camboriú – SC · CEP 88330-484', '+55 (47) 2033 9700 · +55 (47) 99228 3737'],
     'dcfoods':      ['Rua Emanuel Kant, 60 – Sala 1111 – Ed. H. A. Offices', 'Capão Raso, Curitiba – PR · CEP 81020-670', 'WhatsApp: +55 (47) 99914-7000'],
-    'oceanfoods':   ['Rua Emanuel Kant, 60 – Sala 1111 – Ed. H. A. Offices', 'Capão Raso, Curitiba – PR · CEP 81020-670', 'WhatsApp: +55 (47) 99914-7000'],
+    'oceanfoods':   ['Rua Mestra Maria Peclat QD 1D LOT 1', 'Jardim Todos os Santos 2 · Sen. Canedo – GO', '+55 47 99914-7000'],
   };
 
   const footerLogos = {
@@ -100,7 +100,7 @@ function PublicShowcaseView({ companySlug, products, holdings, categories, heroI
     'dcfoods':      'logo_dcfoods.svg',
     'fxamerica':    'logo_fxamerica.svg',
     '7ecom':        'logo_fxamerica.svg',
-    'oceanfoods':   'logo_dcfoods.svg',
+    'oceanfoods':   'logo_oceanfoods.svg',
   };
 
   const info    = contactInfo[companySlug] || [];
