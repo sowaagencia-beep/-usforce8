@@ -221,7 +221,7 @@
         if (error) return error.message === 'Invalid login credentials'
           ? 'E-mail ou senha incorretos'
           : error.message;
-        navigate({ view: 'admin-dashboard', isAuthenticated: true });
+        navigate({ view: 'admin-dashboard', isAuthenticated: true, adminEmail: email });
       };
       const handleLogout = async () => {
         if (sb) await sb.auth.signOut();
@@ -302,6 +302,15 @@
           if (error) console.error('Supabase add category:', error.message);
         }
       };
+      const handleDeleteProduct = async (productId) => {
+        setProducts(list => list.filter(p => p.id !== productId));
+        if (sb) {
+          const { error } = await sb.from('products').delete().eq('id', productId);
+          if (error) console.error('Supabase delete product:', error.message);
+        }
+        toast('Produto excluído');
+      };
+
       const handleDeleteCategory = async (slug, name) => {
         setCategories(c => ({ ...c, [slug]: (c[slug] || []).filter(n => n !== name) }));
         if (sb) {
@@ -344,9 +353,11 @@
               products={products} holdings={holdings} categories={categories}
               onNavigate={navigate} onLogout={handleLogout}
               onNewProduct={handleNewProduct} onEditProduct={handleEditProduct}
+              onDeleteProduct={handleDeleteProduct}
               onCreateHolding={handleCreateHolding}
               onCreateCompany={handleCreateCompany}
               onCreateBrand={handleCreateBrand}
+              adminEmail={state.adminEmail}
             />
           )}
 

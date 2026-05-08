@@ -6,8 +6,9 @@ function Icn({ name, ...p }) { const C = window.lucide[name]; return C ? <C {...
 
 function AdminView({
   products, holdings, categories,
-  onNavigate, onLogout, onNewProduct, onEditProduct,
+  onNavigate, onLogout, onNewProduct, onEditProduct, onDeleteProduct,
   onCreateHolding, onCreateCompany, onCreateBrand,
+  adminEmail,
 }) {
   const { fmtNum, fmtDate, buildEntityMap, getSlugsUnder } = window.USFORCE_DATA;
 
@@ -151,13 +152,14 @@ function AdminView({
           </div>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <button className="h-9 w-9 flex items-center justify-center text-[#0F1B3D]/60 hover:bg-[#F4F6FB]"><Icn name="Bell" size={16} /></button>
-          <div className="h-8 w-px bg-[#0F1B3D]/10" />
           <div className="flex items-center gap-2">
-            <div className="h-8 w-8 bg-[#0F1B3D] text-white text-[11px] font-bold flex items-center justify-center" style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 75% 100%, 0 100%)' }}>AD</div>
+            <div className="h-8 w-8 bg-[#0F1B3D] text-white text-[11px] font-bold flex items-center justify-center shrink-0"
+                 style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 75% 100%, 0 100%)' }}>
+              {adminEmail ? adminEmail.slice(0, 2).toUpperCase() : 'AD'}
+            </div>
             <div className="hidden md:flex flex-col text-xs leading-tight">
               <span className="font-bold text-[#0F1B3D]">Administrador</span>
-              <span className="text-[10px] uppercase tracking-wider text-[#0F1B3D]/50">admin@usforce8.com.br</span>
+              <span className="text-[10px] tracking-wide text-[#0F1B3D]/50">{adminEmail || '—'}</span>
             </div>
           </div>
         </div>
@@ -366,7 +368,8 @@ function AdminView({
                   const e = entityMap[p.companySlug];
                   return e ? <AdminProductCard key={p.id} product={p} entity={e}
                     onEdit={() => onEditProduct(p)}
-                    onView={() => onNavigate({ view: 'public-product-detail', selectedProductId: p.id, selectedCompanySlug: p.companySlug })} /> : null;
+                    onView={() => onNavigate({ view: 'public-product-detail', selectedProductId: p.id, selectedCompanySlug: p.companySlug })}
+                    onDelete={() => onDeleteProduct(p.id)} /> : null;
                 })}
               </div>
             )}
@@ -503,7 +506,17 @@ function FilterSelect({ value, onChange, options }) {
   );
 }
 
-function AdminProductCard({ product, entity, onEdit, onView }) {
+function AdminProductCard({ product, entity, onEdit, onView, onDelete }) {
+  const [confirmDel, setConfirmDel] = useStateAdmin(false);
+
+  const handleDelete = () => {
+    if (confirmDel) { onDelete(); }
+    else {
+      setConfirmDel(true);
+      setTimeout(() => setConfirmDel(false), 3000);
+    }
+  };
+
   return (
     <ChamferCard chamfer={20} className="bg-white border border-[#0F1B3D]/10 hover:border-[#0F1B3D]/30 transition-colors flex flex-col">
       <ProductImage product={product} heightClass="h-64" />
@@ -527,12 +540,18 @@ function AdminProductCard({ product, entity, onEdit, onView }) {
       </div>
       <div className="px-4 py-3 border-t border-[#0F1B3D]/10 flex items-center justify-between text-[11px]">
         <span className="font-bold uppercase tracking-[0.16em] text-[#0F1B3D]/50">Cód: {product.code}</span>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button onClick={onView} className="text-[#0F1B3D]/60 hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
             <Icn name="Eye" size={11} /> Ver
           </button>
           <button onClick={onEdit} className="text-[#1E5BC6] hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
-            Editar <Icn name="Pencil" size={11} />
+            <Icn name="Pencil" size={11} /> Editar
+          </button>
+          <button onClick={handleDelete}
+            className={`flex items-center gap-1 font-bold uppercase tracking-[0.14em] transition-colors ${confirmDel ? 'text-red-600' : 'text-[#0F1B3D]/30 hover:text-red-500'}`}
+            title={confirmDel ? 'Clique para confirmar' : 'Excluir produto'}>
+            <Icn name={confirmDel ? 'Trash2' : 'Trash2'} size={11} />
+            {confirmDel ? 'Confirmar?' : ''}
           </button>
         </div>
       </div>
