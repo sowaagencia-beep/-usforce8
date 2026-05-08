@@ -295,6 +295,21 @@
         toast('Capa atualizada');
       };
 
+      const handleAddCategory = async (slug, name) => {
+        setCategories(c => ({ ...c, [slug]: [...(c[slug] || []), name] }));
+        if (sb) {
+          const { error } = await sb.from('categories').insert({ entity_slug: slug, name });
+          if (error) console.error('Supabase add category:', error.message);
+        }
+      };
+      const handleDeleteCategory = async (slug, name) => {
+        setCategories(c => ({ ...c, [slug]: (c[slug] || []).filter(n => n !== name) }));
+        if (sb) {
+          const { error } = await sb.from('categories').delete().eq('entity_slug', slug).eq('name', name);
+          if (error) console.error('Supabase delete category:', error.message);
+        }
+      };
+
       const handleSelectProduct  = (p) => navigate({ view: 'public-product-detail', selectedProductId: p.id, selectedCompanySlug: p.companySlug });
       const handleBackToAdmin    = () => state.isAuthenticated
         ? navigate({ view: 'admin-dashboard', selectedProductId: null })
@@ -341,6 +356,8 @@
               holdings={holdings} categories={categories}
               onCancel={() => navigate({ view: 'admin-dashboard', editingProduct: null })}
               onSave={handleSaveProduct} onLogout={handleLogout}
+              onAddCategory={handleAddCategory}
+              onDeleteCategory={handleDeleteCategory}
             />
           )}
 

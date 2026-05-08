@@ -4,7 +4,7 @@ const { useState: useStateForm, useMemo: useMemoForm, useRef: useRefForm } = Rea
 
 function I({ name, ...p }) { const C = window.lucide[name]; return C ? <C {...p} /> : null; }
 
-function ProductFormView({ initialProduct, holdings, categories, onCancel, onSave, onLogout }) {
+function ProductFormView({ initialProduct, holdings, categories, onCancel, onSave, onLogout, onAddCategory, onDeleteCategory }) {
   const { buildEntityMap, getAllEntities } = window.USFORCE_DATA;
 
   // Build entity map once
@@ -231,12 +231,23 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
                 )}
 
                 {/* Categoria */}
-                <Field label="Categoria" required error={errors.category}>
-                  <SelectInput value={form.category} onChange={(v) => set('category', v)} disabled={!form.companySlug}>
-                    <option value="">Selecione a categoria</option>
-                    {availableCategories.map(c => <option key={c} value={c}>{c}</option>)}
-                  </SelectInput>
-                </Field>
+                <div className="md:col-span-2">
+                  <Field label="Categoria" required error={errors.category}>
+                    {!form.companySlug ? (
+                      <div className="px-3 py-2.5 text-xs text-[#0F1B3D]/40 bg-[#F4F6FB] border border-[#0F1B3D]/15">
+                        Selecione uma empresa ou marca primeiro
+                      </div>
+                    ) : (
+                      <CategoryManager
+                        categories={availableCategories}
+                        selected={form.category}
+                        onSelect={v => set('category', v)}
+                        onAdd={name => onAddCategory(form.companySlug, name)}
+                        onDelete={name => { onDeleteCategory(form.companySlug, name); if (form.category === name) set('category', ''); }}
+                      />
+                    )}
+                  </Field>
+                </div>
               </div>
             </Section>
 
@@ -503,6 +514,83 @@ function SelectInput({ value, onChange, children, disabled }) {
         {children}
       </select>
       <span className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-[#0F1B3D]/40"><I name="ChevronDown" size={14} /></span>
+    </div>
+  );
+}
+
+function CategoryManager({ categories, selected, onSelect, onAdd, onDelete }) {
+  const [newCat,      setNewCat]      = useStateForm('');
+  const [delConfirm,  setDelConfirm]  = useStateForm(null);
+
+  const handleAdd = () => {
+    const name = newCat.trim();
+    if (!name || categories.includes(name)) return;
+    onAdd(name);
+    setNewCat('');
+  };
+
+  const handleDelete = (name) => {
+    if (delConfirm === name) {
+      onDelete(name);
+      setDelConfirm(null);
+    } else {
+      setDelConfirm(name);
+      setTimeout(() => setDelConfirm(c => c === name ? null : c), 3000);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      {/* Chips existentes */}
+      {categories.length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {categories.map(cat => (
+            <div key={cat}
+              className={`group inline-flex items-center text-[11px] font-bold uppercase tracking-[0.14em] border transition-colors
+                ${selected === cat
+                  ? 'bg-[#0F1B3D] text-white border-[#0F1B3D]'
+                  : 'bg-[#F4F6FB] text-[#0F1B3D] border-[#0F1B3D]/20 hover:border-[#0F1B3D]/50'}`}>
+              <button type="button" onClick={() => onSelect(cat)} className="px-3 py-1.5">
+                {cat}
+              </button>
+              <button type="button" onClick={() => handleDelete(cat)}
+                className={`pr-2.5 pl-1 py-1.5 transition-colors
+                  ${delConfirm === cat
+                    ? 'text-red-500 opacity-100'
+                    : selected === cat
+                      ? 'opacity-40 hover:opacity-100'
+                      : 'opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-500'}`}>
+                <I name={delConfirm === cat ? 'Trash2' : 'X'} size={10} />
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs text-[#0F1B3D]/40 italic">Nenhuma categoria ainda — crie a primeira abaixo.</p>
+      )}
+
+      {/* Input para nova categoria */}
+      <div className="flex items-center gap-2">
+        <input
+          type="text"
+          value={newCat}
+          onChange={e => setNewCat(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAdd(); } }}
+          placeholder="Nova categoria…"
+          className="flex-1 px-3 py-2 text-sm bg-[#F4F6FB] border border-[#0F1B3D]/15 focus:border-[#0F1B3D] focus:bg-white outline-none transition-colors"
+        />
+        <button type="button" onClick={handleAdd}
+          disabled={!newCat.trim() || categories.includes(newCat.trim())}
+          className="inline-flex items-center gap-1.5 px-3 py-2 bg-[#0F1B3D] text-white text-[11px] font-bold uppercase tracking-[0.14em] hover:bg-[#1a2d5a] disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+          <I name="Plus" size={12} /> Criar
+        </button>
+      </div>
+
+      {delConfirm && (
+        <p className="text-[10px] text-red-600 font-semibold flex items-center gap-1">
+          <I name="AlertTriangle" size={11} /> Clique no lixo novamente para confirmar exclusão
+        </p>
+      )}
     </div>
   );
 }
