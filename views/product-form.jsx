@@ -28,7 +28,8 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
     code:         initialProduct?.code || `USF-${Math.floor(Math.random()*9000+1000)}`,
     short:        initialProduct?.short || '',
     long:         initialProduct?.long || '',
-    unitsPerBox:  initialProduct?.unitsPerBox ?? 12,
+    unitsPerBox:  (initialProduct?.unitsPerBox && initialProduct.unitsPerBox > 0) ? initialProduct.unitsPerBox : 12,
+    variableUnits: initialProduct?.unitsPerBox === 0,
     origin:       initialProduct?.origin || 'Brasil',
     active:       initialProduct?.active ?? true,
     images:       initialProduct?.images || [],
@@ -82,7 +83,7 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
       code:        form.code,
       short:       form.short,
       long:        form.long || form.short,
-      unitsPerBox: Number(form.unitsPerBox) || 1,
+      unitsPerBox: form.variableUnits ? 0 : (Number(form.unitsPerBox) || 1),
       origin:      form.origin,
       active:      form.active,
       sharedWith:  form.sharedWith,
@@ -281,8 +282,24 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
             {/* ── Embalagem ──────────────────────────────────────────────── */}
             <Section icon="Boxes" title="Embalagem e Origem" subtitle="Unidades por caixa · país de origem">
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Unidades por Caixa" required error={errors.unitsPerBox}>
-                  <TextInput type="number" value={form.unitsPerBox} onChange={(v) => set('unitsPerBox', v)} placeholder="12" />
+                <Field label="Unidades por Caixa" required={!form.variableUnits} error={errors.unitsPerBox}>
+                  <div className="space-y-2">
+                    {/* Toggle variável por peso */}
+                    <label className="flex items-center gap-2 cursor-pointer select-none">
+                      <button type="button" onClick={() => set('variableUnits', !form.variableUnits)}
+                        className={`relative h-5 w-9 shrink-0 transition-colors ${form.variableUnits ? 'bg-[#0F1B3D]' : 'bg-[#0F1B3D]/20'}`}>
+                        <span className={`absolute top-0.5 h-4 w-4 bg-white transition-all ${form.variableUnits ? 'left-[18px]' : 'left-0.5'}`} />
+                      </button>
+                      <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#0F1B3D]/70">Variável (por peso)</span>
+                    </label>
+                    {form.variableUnits ? (
+                      <div className="px-3 py-2 bg-[#F4F6FB] border border-[#0F1B3D]/15 text-sm text-[#0F1B3D]/60 italic">
+                        Depende do peso
+                      </div>
+                    ) : (
+                      <TextInput type="number" value={form.unitsPerBox} onChange={(v) => set('unitsPerBox', v)} placeholder="12" />
+                    )}
+                  </div>
                 </Field>
                 <Field label="País de Origem" required error={errors.origin}>
                   <TextInput value={form.origin} onChange={(v) => set('origin', v)} placeholder="Ex.: Brasil" />

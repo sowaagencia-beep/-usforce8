@@ -55,8 +55,8 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
           </div>
 
           {/* Main image */}
-          <div className="relative bg-[#0F1B3D] order-1 lg:order-2 aspect-[4/3] overflow-hidden">
-            <img src={product.images[activeImg]} className="w-full h-full object-cover" alt="" />
+          <div className="relative bg-white order-1 lg:order-2 aspect-[4/3] overflow-hidden border border-[#0F1B3D]/10">
+            <img src={product.images[activeImg]} className="w-full h-full object-contain" alt="" />
             {['top-2 left-2 border-t border-l', 'top-2 right-2 border-t border-r', 'bottom-2 left-2 border-b border-l', 'bottom-2 right-2 border-b border-r'].map((cls, i) => (
               <span key={i} className={`absolute ${cls} h-4 w-4 border-white/40`} />
             ))}
@@ -91,7 +91,7 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
               <div>
                 {[
                   ['Código', product.code],
-                  ['Unidades por Caixa', product.unitsPerBox],
+                  ['Unidades por Caixa', product.unitsPerBox === 0 ? 'Variável (por peso)' : product.unitsPerBox],
                   ['País de Origem', product.origin],
                 ].map(([k, v], i) => (
                   <div key={i} className={`flex items-center justify-between px-3 py-2 text-xs ${i % 2 === 0 ? 'bg-white' : 'bg-[#F4F6FB]/60'}`}>
@@ -136,7 +136,7 @@ function PublicProductDetailView({ product, products, holdings, onBack, onSelect
               <tbody>
                 {[
                   ['Código', product.code],
-                  ['Unidades por Caixa', product.unitsPerBox],
+                  ['Unidades por Caixa', product.unitsPerBox === 0 ? 'Variável (por peso)' : product.unitsPerBox],
                   ['País de Origem', product.origin],
                   ['Categoria', product.category],
                   ['Empresa / Marca', entity.name],

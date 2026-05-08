@@ -359,7 +359,7 @@ function ShowcaseCard({ product, onSelect }) {
           </div>
           <div>
             <div className="text-[9px] uppercase tracking-[0.16em] text-[#0F1B3D]/40 font-bold">Unid./Cx</div>
-            <div className="text-sm font-black text-[#0F1B3D]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{product.unitsPerBox}</div>
+            <div className="text-sm font-black text-[#0F1B3D]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{product.unitsPerBox === 0 ? 'Var.' : product.unitsPerBox}</div>
           </div>
           <div>
             <div className="text-[9px] uppercase tracking-[0.16em] text-[#0F1B3D]/40 font-bold">Origem</div>

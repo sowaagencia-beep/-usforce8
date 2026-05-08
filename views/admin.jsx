@@ -530,7 +530,9 @@ function AdminProductCard({ product, entity, onEdit, onView, onDelete }) {
         <div className="mt-3 grid grid-cols-2 gap-2 text-[10px]">
           <div>
             <div className="uppercase tracking-[0.16em] text-[#0F1B3D]/40 font-bold">Unid./Cx</div>
-            <div className="text-sm font-bold text-[#0F1B3D]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{product.unitsPerBox}</div>
+            <div className="text-sm font-bold text-[#0F1B3D]" style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>
+              {product.unitsPerBox === 0 ? 'Variável' : product.unitsPerBox}
+            </div>
           </div>
           <div>
             <div className="uppercase tracking-[0.16em] text-[#0F1B3D]/40 font-bold">Origem</div>

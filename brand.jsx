@@ -100,8 +100,8 @@ function CategoryTag({ children, className = '' }) {
 function ProductImage({ product, className = '', heightClass = 'h-48' }) {
   const img = product.images?.[0];
   return (
-    <div className={`relative overflow-hidden bg-[#0F1B3D] ${heightClass} ${className}`}>
-      <img src={img} alt={product.name} className="w-full h-full object-cover" />
+    <div className={`relative overflow-hidden bg-white ${heightClass} ${className}`}>
+      <img src={img} alt={product.name} className="w-full h-full object-contain" />
     </div>
   );
 }
