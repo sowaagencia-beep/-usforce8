@@ -84,6 +84,15 @@ function CatalogAdminView({
   const handleBackFile    = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'backcover', backCoverUrl); if (u) setBackCoverUrl(u); };
   const handleCatFile     = async (e, cat) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f, cat, catCovers[cat]); if (u) setCatCovers(c => ({ ...c, [cat]: u })); };
 
+  // Apagar imagem: remove do estado + apaga do Dropbox
+  const handleClearCover     = async () => { const old = coverUrl;     setCoverUrl('');     await deleteOldFile(old); };
+  const handleClearBackCover = async () => { const old = backCoverUrl; setBackCoverUrl(''); await deleteOldFile(old); };
+  const handleClearCatCover  = async (key) => {
+    const old = catCovers[key];
+    setCatCovers(c => { const n = { ...c }; delete n[key]; return n; });
+    await deleteOldFile(old);
+  };
+
   const handleLogoFile = async (e, slug) => {
     const f = e.target.files?.[0]; if (!f) return; e.target.value='';
     const currentLogo = entityLogos?.[slug] || null;
@@ -157,7 +166,7 @@ function CatalogAdminView({
     );
   }
 
-  function ImgZone({ imgUrl, onClear, onPickFile, loading, label, hint, ratio = '210/297' }) {
+  function ImgZone({ imgUrl, onClear, onPickFile, loading, label, hint, ratio = '297/210' }) {
     return imgUrl ? (
       <div className="relative border border-[#0F1B3D]/15 overflow-hidden" style={{ aspectRatio: ratio }}>
         <img src={imgUrl} alt={label} className="w-full h-full object-cover" />
@@ -332,13 +341,13 @@ function CatalogAdminView({
 
           {/* ── Portada ──────────────────────────────────────────────────── */}
           <section>
-            <SectionHeader icon="BookOpen" title="Portada do Catálogo" desc="Primeira página do PDF — formato A4 vertical" />
+            <SectionHeader icon="BookOpen" title="Portada do Catálogo" desc="Primeira página do PDF — formato A4 paisagem" />
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
                 <ImgZone imgUrl={coverUrl} loading={uploading === 'cover'} label="Portada"
-                  hint="JPG, PNG · proporção A4 recomendada (794 × 1122 px)"
-                  onClear={() => setCoverUrl('')} onPickFile={() => coverRef.current?.click()} />
+                  hint="JPG, PNG · 1123 × 794 px (A4 paisagem)"
+                  onClear={handleClearCover} onPickFile={() => coverRef.current?.click()} />
                 <p className="mt-2 text-[10px] text-[#0F1B3D]/45 uppercase tracking-[0.15em]">
                   Se vazio → gerado automaticamente com cores da marca
                 </p>
@@ -347,7 +356,7 @@ function CatalogAdminView({
                 <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/50 mb-1">Formato PDF</div>
                 <div className="flex items-baseline gap-2">
                   <span className="text-2xl font-black text-[#0F1B3D]" style={{ fontFamily:"'Barlow Condensed', sans-serif" }}>A4</span>
-                  <span className="text-xs text-[#0F1B3D]/60">210 × 297 mm · Vertical</span>
+                  <span className="text-xs text-[#0F1B3D]/60">297 × 210 mm · Paisagem · 1123 × 794 px</span>
                 </div>
                 <div className="text-[11px] text-[#0F1B3D]/60 leading-relaxed">
                   1 produto por página · Alta resolução (2×) · Exportação direta em PDF
@@ -409,8 +418,8 @@ function CatalogAdminView({
                     <ImgZone
                       imgUrl={catCovers[`brand:${brand.slug}`] || ''}
                       loading={uploading === `brand:${brand.slug}`}
-                      label={brand.name} hint="JPG, PNG · 794 × 1122 px"
-                      onClear={() => setCatCovers(c => { const n={...c}; delete n[`brand:${brand.slug}`]; return n; })}
+                      label={brand.name} hint="JPG, PNG · 1123 × 794 px (A4 paisagem)"
+                      onClear={() => handleClearCatCover(`brand:${brand.slug}`)}
                       onPickFile={() => catRefs.current[`brand:${brand.slug}`]?.click()}
                     />
                   </div>
@@ -443,8 +452,8 @@ function CatalogAdminView({
                       <input ref={el => { catRefs.current[cat] = el; }} type="file" accept="image/*" className="hidden"
                         onChange={e => handleCatFile(e, cat)} />
                       <ImgZone imgUrl={catCovers[cat] || ''} loading={uploading === cat} label={cat}
-                        hint="JPG, PNG · 794 × 1122 px"
-                        onClear={() => setCatCovers(c => { const n={...c}; delete n[cat]; return n; })}
+                        hint="JPG, PNG · 1123 × 794 px (A4 paisagem)"
+                        onClear={() => handleClearCatCover(cat)}
                         onPickFile={() => catRefs.current[cat]?.click()} />
                     </div>
                   ))}
@@ -456,11 +465,11 @@ function CatalogAdminView({
           {/* ── Contra-portada ────────────────────────────────────────────── */}
           <section>
             <SectionHeader icon="BookMarked" title="Contra-portada" desc="Última página do catálogo — opcional" />
-            <div className="max-w-xs">
+            <div className="max-w-md">
               <input ref={backCoverRef} type="file" accept="image/*" className="hidden" onChange={handleBackFile} />
               <ImgZone imgUrl={backCoverUrl} loading={uploading === 'backcover'} label="Contra-portada"
-                hint="JPG, PNG · 794 × 1122 px"
-                onClear={() => setBackCoverUrl('')} onPickFile={() => backCoverRef.current?.click()} />
+                hint="JPG, PNG · 1123 × 794 px (A4 paisagem)"
+                onClear={handleClearBackCover} onPickFile={() => backCoverRef.current?.click()} />
               <p className="mt-2 text-[10px] text-[#0F1B3D]/45 uppercase tracking-[0.15em]">
                 Se vazio → não será adicionada contra-portada
               </p>
