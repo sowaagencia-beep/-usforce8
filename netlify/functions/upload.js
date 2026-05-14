@@ -84,11 +84,67 @@ async function dropboxUpload(token, dbxPath, buffer) {
   return res.json();
 }
 
+async function dropboxDelete(token, dbxPath) {
+  return dropboxPost('https://api.dropboxapi.com/2/files/delete_v2', token, { path: dbxPath });
+}
+
+async function dropboxList(token, folderPath) {
+  return dropboxPost('https://api.dropboxapi.com/2/files/list_folder', token, { path: folderPath, recursive: true });
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
 exports.handler = async (event) => {
-  const headers = { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' };
+  const headers = {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+  };
 
   if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers };
+
+  // ── DELETE: remove arquivo único do Dropbox ─────────────────────────────────
+  if (event.httpMethod === 'DELETE') {
+    try {
+      const { path: dbxPath } = JSON.parse(event.body || '{}');
+      if (!dbxPath || !dbxPath.startsWith('/USFORCE8/')) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'Path inválido' }) };
+      }
+      const token = await getToken();
+      const result = await dropboxDelete(token, dbxPath);
+      if (result.error_summary && !result.error_summary.includes('not_found')) {
+        throw new Error(result.error_summary);
+      }
+      return { statusCode: 200, headers, body: JSON.stringify({ ok: true }) };
+    } catch (err) {
+      console.error('[delete]', err.message);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
+  // ── GET: lista arquivos numa pasta (para cleanup) ────────────────────────────
+  if (event.httpMethod === 'GET') {
+    try {
+      const folder = (event.queryStringParameters?.folder || '').trim();
+      if (!folder || !folder.startsWith('/USFORCE8/')) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'folder inválida' }) };
+      }
+      const token = await getToken();
+      const data  = await dropboxList(token, folder);
+      if (data.error_summary) {
+        if (data.error_summary.includes('not_found')) return { statusCode: 200, headers, body: JSON.stringify({ files: [] }) };
+        throw new Error(data.error_summary);
+      }
+      const files = (data.entries || [])
+        .filter(e => e['.tag'] === 'file')
+        .map(e => ({ path: e.path_lower, name: e.name, size: e.size }));
+      return { statusCode: 200, headers, body: JSON.stringify({ files }) };
+    } catch (err) {
+      console.error('[list]', err.message);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
   if (event.httpMethod !== 'POST')    return { statusCode: 405, headers, body: JSON.stringify({ error: 'Method Not Allowed' }) };
 
   try {

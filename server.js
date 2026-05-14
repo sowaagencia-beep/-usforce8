@@ -161,6 +161,34 @@ app.delete('/api/upload', async (req, res) => {
   }
 });
 
+// ── GET /api/upload?folder=... — lista arquivos para cleanup ─────────────────
+
+app.get('/api/upload', async (req, res) => {
+  try {
+    const folder = (req.query.folder || '').trim();
+    if (!folder || !folder.startsWith('/USFORCE8/')) {
+      return res.status(400).json({ error: 'folder inválida' });
+    }
+    const token = await getAccessToken();
+    const r = await fetch('https://api.dropboxapi.com/2/files/list_folder', {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ path: folder, recursive: true }),
+    });
+    const data = await readJson(r);
+    if (data.error_summary) {
+      if (data.error_summary.includes('not_found')) return res.json({ files: [] });
+      throw new Error(data.error_summary);
+    }
+    const files = (data.entries || [])
+      .filter(e => e['.tag'] === 'file')
+      .map(e => ({ path: e.path_lower, name: e.name, size: e.size }));
+    res.json({ files });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/test — diagnóstico rápido ───────────────────────────────────────
 
 app.get('/api/test', (_req, res) => {

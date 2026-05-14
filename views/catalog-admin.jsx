@@ -97,6 +97,46 @@ function CatalogAdminView({
     setTimeout(() => setSaved(false), 2200);
   };
 
+  // ── Limpeza de órfãos do Dropbox ─────────────────────────────────────────────
+  const [cleaning, setCleaning] = useStateCatAdm(false);
+  const extractDbxPath = (url) => {
+    if (!url) return null;
+    const m = url.match(/\/USFORCE8\/[^?#]+/);
+    return m ? m[0].toLowerCase() : null;
+  };
+
+  const handleCleanup = async () => {
+    if (cleaning) return;
+    const folder = `/USFORCE8/produtos/catalogos/${entitySlug}`;
+    const used = new Set();
+    [coverUrl, backCoverUrl].forEach(u => { const p = extractDbxPath(u); if (p) used.add(p); });
+    Object.values(catCovers || {}).forEach(u => { const p = extractDbxPath(u); if (p) used.add(p); });
+    const p1 = extractDbxPath(entityLogos?.[entitySlug]); if (p1) used.add(p1);
+    brandList.forEach(b => { const p = extractDbxPath(entityLogos?.[b.slug]); if (p) used.add(p); });
+
+    setCleaning(true);
+    try {
+      const r = await fetch(`${UPLOAD_URL}?folder=${encodeURIComponent(folder)}`);
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || `Erro ${r.status}`);
+      const orphans = (data.files || []).filter(f => !used.has(f.path));
+      if (!orphans.length) { alert('Nenhum arquivo órfão encontrado.'); return; }
+      if (!confirm(`Apagar ${orphans.length} arquivo(s) não usado(s) do Dropbox?`)) return;
+      let ok = 0, fail = 0;
+      for (const f of orphans) {
+        try {
+          const res = await fetch(UPLOAD_URL, { method:'DELETE', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ path: f.path }) });
+          if (res.ok) ok++; else fail++;
+        } catch { fail++; }
+      }
+      alert(`Limpeza concluída: ${ok} apagado(s)${fail ? `, ${fail} falha(s)` : ''}.`);
+    } catch (err) {
+      setUploadErr(`Limpeza: ${err.message}`);
+    } finally {
+      setCleaning(false);
+    }
+  };
+
   const accent = entity?.accent || '#1A4A8C';
 
   const IcnA = ({ name, ...p }) => { const C = window.lucide[name]; return C ? <C {...p} /> : null; };
@@ -214,6 +254,9 @@ function CatalogAdminView({
               Editar Layout
             </GhostBtn>
           )}
+          <GhostBtn onClick={handleCleanup} icon={<IcnA name={cleaning ? 'Loader' : 'Trash2'} size={14} className={cleaning ? 'animate-spin' : ''} />}>
+            {cleaning ? 'Limpando…' : 'Limpar órfãos'}
+          </GhostBtn>
           <GhostBtn onClick={onPreview} icon={<IcnA name="Eye" size={14} />}>Pré-visualizar</GhostBtn>
           <PrimaryBtn onClick={handleSave} icon={saved ? <IcnA name="Check" size={14} /> : <IcnA name="Save" size={14} />}>
             {saved ? 'Salvo!' : 'Salvar'}
