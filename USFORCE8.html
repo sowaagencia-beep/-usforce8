@@ -304,6 +304,16 @@
 
       const handleNewProduct  = () => navigate({ view: 'admin-product-form', editingProduct: null });
       const handleEditProduct = (p) => navigate({ view: 'admin-product-form', editingProduct: p });
+      const handleDuplicateProduct = (p) => {
+        const copy = {
+          ...p,
+          id: (crypto?.randomUUID?.() || `p_${Date.now()}_${Math.random().toString(36).slice(2,8)}`),
+          name: `${p.name} (cópia)`,
+          code: '',
+          createdAt: new Date().toISOString(),
+        };
+        navigate({ view: 'admin-product-form', editingProduct: copy });
+      };
 
       const handleSaveProduct = async (product, publish) => {
         setProducts(list => {
@@ -513,6 +523,7 @@
               products={products} holdings={holdings} categories={categories}
               onNavigate={navigate} onLogout={handleLogout}
               onNewProduct={handleNewProduct} onEditProduct={handleEditProduct}
+              onDuplicateProduct={handleDuplicateProduct}
               onDeleteProduct={handleDeleteProduct}
               onCreateHolding={handleCreateHolding}
               onCreateCompany={handleCreateCompany}

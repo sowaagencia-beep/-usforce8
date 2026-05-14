@@ -17,7 +17,7 @@ function parseColor(val) {
 
 function AdminView({
   products, holdings, categories,
-  onNavigate, onLogout, onNewProduct, onEditProduct, onDeleteProduct,
+  onNavigate, onLogout, onNewProduct, onEditProduct, onDuplicateProduct, onDeleteProduct,
   onCreateHolding, onCreateCompany, onCreateBrand,
   onUpdateCompany, onUpdateBrand,
   adminEmail, catalogConfigs,
@@ -419,6 +419,7 @@ function AdminView({
                   const e = entityMap[p.companySlug];
                   return e ? <AdminProductCard key={p.id} product={p} entity={e}
                     onEdit={() => onEditProduct(p)}
+                    onDuplicate={() => onDuplicateProduct(p)}
                     onView={() => onNavigate({ view: 'public-product-detail', selectedProductId: p.id, selectedCompanySlug: p.companySlug })}
                     onDelete={() => onDeleteProduct(p.id)} /> : null;
                 })}
@@ -617,7 +618,7 @@ function FilterSelect({ value, onChange, options }) {
   );
 }
 
-function AdminProductCard({ product, entity, onEdit, onView, onDelete }) {
+function AdminProductCard({ product, entity, onEdit, onDuplicate, onView, onDelete }) {
   const [confirmDel, setConfirmDel] = useStateAdmin(false);
 
   const handleDelete = () => {
@@ -659,6 +660,10 @@ function AdminProductCard({ product, entity, onEdit, onView, onDelete }) {
           </button>
           <button onClick={onEdit} className="text-[#1E5BC6] hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
             <Icn name="Pencil" size={11} /> Editar
+          </button>
+          <button onClick={onDuplicate} title="Duplicar produto"
+            className="text-[#0F1B3D]/60 hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
+            <Icn name="Copy" size={11} /> Duplicar
           </button>
           <button onClick={handleDelete}
             className={`flex items-center gap-1 font-bold uppercase tracking-[0.14em] transition-colors ${confirmDel ? 'text-red-600' : 'text-[#0F1B3D]/30 hover:text-red-500'}`}
