@@ -109,22 +109,22 @@ function renderBlock(block, { product, entity, logoUrl, colors }) {
       return <FiveStars muted={muted} />;
     case 'code':
       return product.code ? (
-        <div style={{ display:'flex', gap:'8px', alignItems:'baseline' }}>
-          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'0.24em', textTransform:'uppercase', color:muted, width:'70px', flexShrink:0 }}>Código</span>
+        <div style={{ display:'flex', gap:'12px', alignItems:'baseline' }}>
+          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'0.22em', textTransform:'uppercase', color:muted, minWidth:'110px', flexShrink:0 }}>Código</span>
           <span style={{ fontSize:'13px', fontWeight:600, color:dim }}>{product.code}</span>
         </div>
       ) : null;
     case 'origin':
       return product.origin ? (
-        <div style={{ display:'flex', gap:'8px', alignItems:'baseline' }}>
-          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'0.24em', textTransform:'uppercase', color:muted, width:'70px', flexShrink:0 }}>Origem</span>
+        <div style={{ display:'flex', gap:'12px', alignItems:'baseline' }}>
+          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'0.22em', textTransform:'uppercase', color:muted, minWidth:'110px', flexShrink:0 }}>Origem</span>
           <span style={{ fontSize:'13px', fontWeight:600, color:dim }}>{product.origin}</span>
         </div>
       ) : null;
     case 'units':
       return (
-        <div style={{ display:'flex', gap:'8px', alignItems:'baseline' }}>
-          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'0.24em', textTransform:'uppercase', color:muted, width:'70px', flexShrink:0 }}>Embalagem</span>
+        <div style={{ display:'flex', gap:'12px', alignItems:'baseline' }}>
+          <span style={{ fontSize:'9px', fontWeight:700, letterSpacing:'0.22em', textTransform:'uppercase', color:muted, minWidth:'110px', flexShrink:0 }}>Unidades por Caixa</span>
           <span style={{ fontSize:'13px', fontWeight:600, color:dim }}>{units}</span>
         </div>
       );
