@@ -218,6 +218,26 @@
         })();
       }, []);
 
+      // ── Realtime: sincroniza produtos novos/editados/excluídos automaticamente ──
+      useEffect(() => {
+        if (!sb) return;
+        const ch = sb.channel('public:products')
+          .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, (payload) => {
+            if (payload.eventType === 'DELETE') {
+              setProducts(list => list.filter(p => p.id !== payload.old.id));
+            } else {
+              const incoming = fromDb.product(payload.new);
+              setProducts(list => {
+                const idx = list.findIndex(p => p.id === incoming.id);
+                if (idx >= 0) { const next = [...list]; next[idx] = incoming; return next; }
+                return [incoming, ...list];
+              });
+            }
+          })
+          .subscribe();
+        return () => { sb.removeChannel(ch); };
+      }, []);
+
       // ── Roteamento por hash (#vitrine/slug) ──────────────────────────────────
       const parseHash = () => {
         const m = window.location.hash.match(/^#vitrine\/([^/]+)/);

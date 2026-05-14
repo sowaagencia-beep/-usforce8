@@ -149,15 +149,6 @@ function PublicShowcaseView({ companySlug, products, holdings, categories, heroI
           </div>
         )}
 
-        {/* Botão catálogo — visível para todos quando existe config */}
-        {catalogConfig && (
-          <button onClick={onOpenCatalog}
-            className="absolute bottom-3 left-3 inline-flex items-center gap-2 px-4 py-2 text-white text-[11px] font-bold uppercase tracking-[0.16em] backdrop-blur-sm transition-colors hover:brightness-110"
-            style={{ background: entity?.accent || '#1A4A8C', clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
-            <Ic name="Download" size={14} /> Catálogo PDF
-          </button>
-        )}
-
         {fromAdmin && (
           <button onClick={openBannerModal}
             className="absolute bottom-3 right-3 inline-flex items-center gap-2 px-4 py-2 bg-black/60 hover:bg-black/80 text-white text-[11px] font-bold uppercase tracking-[0.16em] backdrop-blur-sm transition-colors"
@@ -285,7 +276,7 @@ function PublicShowcaseView({ companySlug, products, holdings, categories, heroI
 
       {/* Products */}
       <main className="flex-1 w-full px-8 py-10">
-        {catalogConfig && (
+        {vitrineProducts.length > 0 && (
           <div className="mb-8 flex items-center justify-between gap-4 bg-white border border-[#0F1B3D]/10 px-5 py-4"
                style={{ clipPath: 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%)' }}>
             <div className="flex items-center gap-3 min-w-0">
