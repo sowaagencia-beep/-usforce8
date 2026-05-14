@@ -333,6 +333,35 @@
         toast(`Marca ${brand.name} cadastrada`);
       };
 
+      const handleUpdateCompany = async (slug, holdingId, data) => {
+        setHoldings(list => list.map(h =>
+          h.id === holdingId
+            ? { ...h, companies: h.companies.map(c => c.slug === slug ? { ...c, ...data } : c) }
+            : h
+        ));
+        if (sb) {
+          const { error } = await sb.from('companies').update({ name: data.name, tagline: data.tagline, accent: data.accent }).eq('slug', slug);
+          if (error) console.error('Supabase update company:', error.message);
+        }
+        toast(`${data.name} atualizado`);
+      };
+
+      const handleUpdateBrand = async (slug, companySlug, data) => {
+        setHoldings(list => list.map(h => ({
+          ...h,
+          companies: h.companies.map(c =>
+            c.slug === companySlug
+              ? { ...c, brands: (c.brands || []).map(b => b.slug === slug ? { ...b, ...data } : b) }
+              : c
+          ),
+        })));
+        if (sb) {
+          const { error } = await sb.from('brands').update({ name: data.name, tagline: data.tagline, accent: data.accent }).eq('slug', slug);
+          if (error) console.error('Supabase update brand:', error.message);
+        }
+        toast(`${data.name} atualizado`);
+      };
+
       const handleUpdateHero = (slug, hero) => {
         setHeroImages(h => ({ ...h, [slug]: hero }));
         toast('Capa atualizada');
@@ -445,6 +474,8 @@
               onCreateHolding={handleCreateHolding}
               onCreateCompany={handleCreateCompany}
               onCreateBrand={handleCreateBrand}
+              onUpdateCompany={handleUpdateCompany}
+              onUpdateBrand={handleUpdateBrand}
               adminEmail={state.adminEmail}
               catalogConfigs={catalogConfigs}
             />

@@ -4,10 +4,22 @@ const { useState: useStateAdmin, useMemo: useMemoAdmin } = React;
 
 function Icn({ name, ...p }) { const C = window.lucide[name]; return C ? <C {...p} /> : null; }
 
+// Converte hex, rgb(), ou 3-digit hex para #RRGGBB
+function parseColor(val) {
+  val = (val || '').trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(val)) return val.toLowerCase();
+  if (/^#[0-9a-fA-F]{3}$/.test(val))
+    return '#' + val.slice(1).split('').map(c => c+c).join('').toLowerCase();
+  const m = val.match(/^rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (m) return '#' + [m[1],m[2],m[3]].map(n => Math.min(255,parseInt(n)).toString(16).padStart(2,'0')).join('');
+  return val;
+}
+
 function AdminView({
   products, holdings, categories,
   onNavigate, onLogout, onNewProduct, onEditProduct, onDeleteProduct,
   onCreateHolding, onCreateCompany, onCreateBrand,
+  onUpdateCompany, onUpdateBrand,
   adminEmail, catalogConfigs,
 }) {
   const { fmtNum, fmtDate, buildEntityMap, getSlugsUnder } = window.USFORCE_DATA;
@@ -34,6 +46,10 @@ function AdminView({
   const [showBrandModal, setShowBrandModal] = useStateAdmin(false);
   const [brandForm, setBrandForm] = useStateAdmin({ companySlug: '', name: '', tagline: '', accent: '#1A4A8C', categories: '' });
 
+  // Edit entity (company or brand)
+  const [showEditModal,  setShowEditModal]  = useStateAdmin(false);
+  const [editForm,       setEditForm]       = useStateAdmin({ slug:'', name:'', tagline:'', accent:'#1A4A8C', colorInput:'#1A4A8C', type:'company', holdingId:'', parentSlug:'' });
+
   const slugify = (s) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 
   const openAddCompany = (holdingId) => {
@@ -43,6 +59,26 @@ function AdminView({
   const openAddBrand = (companySlug) => {
     setBrandForm({ companySlug, name: '', tagline: '', accent: '#1A4A8C', categories: '' });
     setShowBrandModal(true);
+  };
+
+  const openEditCompany = (company, holdingId, e) => {
+    e.stopPropagation();
+    setEditForm({ slug: company.slug, name: company.name, tagline: company.tagline || '', accent: company.accent || '#1A4A8C', colorInput: company.accent || '#1A4A8C', type: 'company', holdingId, parentSlug: '' });
+    setShowEditModal(true);
+  };
+  const openEditBrand = (brand, companySlug, e) => {
+    e.stopPropagation();
+    setEditForm({ slug: brand.slug, name: brand.name, tagline: brand.tagline || '', accent: brand.accent || '#1A4A8C', colorInput: brand.accent || '#1A4A8C', type: 'brand', holdingId: '', parentSlug: companySlug });
+    setShowEditModal(true);
+  };
+
+  const submitEdit = () => {
+    if (!editForm.name.trim()) return;
+    const hex = parseColor(editForm.colorInput);
+    const data = { name: editForm.name.trim(), tagline: editForm.tagline.trim(), accent: /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : editForm.accent };
+    if (editForm.type === 'company') onUpdateCompany && onUpdateCompany(editForm.slug, editForm.holdingId, data);
+    else onUpdateBrand && onUpdateBrand(editForm.slug, editForm.parentSlug, data);
+    setShowEditModal(false);
   };
 
   const submitHolding = () => {
@@ -225,6 +261,9 @@ function AdminView({
                               <span className="flex-1 text-left truncate">{c.name}</span>
                               <span className="shrink-0 text-[9px] text-[#0F1B3D]/40">{cnt}</span>
                             </button>
+                            <button onClick={e => openEditCompany(c, h.id, e)} className="shrink-0 p-1.5 text-[#0F1B3D]/30 hover:text-[#0F1B3D] hover:bg-[#F4F6FB]" title={`Editar ${c.name}`}>
+                              <Icn name="Pencil" size={10} />
+                            </button>
                             <button onClick={() => openAddBrand(c.slug)} className="shrink-0 p-1.5 text-[#0F1B3D]/30 hover:text-[#0F1B3D] hover:bg-[#F4F6FB]" title={`Adicionar marca a ${c.name}`}>
                               <Icn name="Plus" size={10} />
                             </button>
@@ -237,12 +276,17 @@ function AdminView({
                                 const isBrandSel = selectedSlug === b.slug;
                                 const bCnt = brandProductCount(b.slug);
                                 return (
-                                  <button key={b.slug} onClick={() => setSelectedSlug(isBrandSel ? null : b.slug)}
-                                    className={`w-full flex items-center gap-2 pl-3 pr-2 py-1.5 text-[10.5px] border-l-2 transition-colors ${isBrandSel ? 'border-[#0F1B3D] bg-[#F4F6FB] text-[#0F1B3D] font-bold' : 'border-transparent text-[#0F1B3D]/60 hover:border-[#0F1B3D]/25 hover:bg-[#F4F6FB]/60'}`}>
-                                    <span className="h-1 w-1 rounded-full bg-current shrink-0 opacity-50" />
-                                    <span className="flex-1 text-left truncate">{b.name}</span>
-                                    <span className="shrink-0 text-[9px] text-[#0F1B3D]/40">{bCnt}</span>
-                                  </button>
+                                  <div key={b.slug} className={`flex items-center border-l-2 ${isBrandSel ? 'border-[#0F1B3D]' : 'border-transparent'}`}>
+                                    <button onClick={() => setSelectedSlug(isBrandSel ? null : b.slug)}
+                                      className={`flex-1 flex items-center gap-2 pl-3 pr-2 py-1.5 text-[10.5px] min-w-0 transition-colors ${isBrandSel ? 'bg-[#F4F6FB] text-[#0F1B3D] font-bold' : 'text-[#0F1B3D]/60 hover:bg-[#F4F6FB]/60'}`}>
+                                      <span className="h-1 w-1 rounded-full bg-current shrink-0 opacity-50" />
+                                      <span className="flex-1 text-left truncate">{b.name}</span>
+                                      <span className="shrink-0 text-[9px] text-[#0F1B3D]/40">{bCnt}</span>
+                                    </button>
+                                    <button onClick={e => openEditBrand(b, c.slug, e)} className="shrink-0 p-1.5 text-[#0F1B3D]/25 hover:text-[#0F1B3D] hover:bg-[#F4F6FB]" title={`Editar ${b.name}`}>
+                                      <Icn name="Pencil" size={9} />
+                                    </button>
+                                  </div>
                                 );
                               })}
                             </div>
@@ -448,6 +492,66 @@ function AdminView({
             <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/70 mb-1.5">Categorias Iniciais</label>
             <input value={companyForm.categories} onChange={e => setCompanyForm(s => ({ ...s, categories: e.target.value }))}
               className="w-full px-3 py-2 text-sm bg-[#F4F6FB] border border-[#0F1B3D]/15 focus:border-[#0F1B3D] focus:bg-white outline-none" placeholder="Separe por vírgula. Ex.: Frescos, Congelados" />
+          </div>
+        </div>
+      </Modal>
+
+      {/* ── Modal: Editar Empresa / Marca ────────────────────────────────── */}
+      <Modal open={showEditModal} onClose={() => setShowEditModal(false)} icon="Pencil"
+        title={`Editar ${editForm.type === 'company' ? 'Empresa' : 'Marca'}`}
+        subtitle="Nome, tagline e cor de acento"
+        footer={<>
+          <button onClick={() => setShowEditModal(false)} className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0F1B3D]/60 hover:text-[#0F1B3D] px-3">Cancelar</button>
+          <PrimaryBtn onClick={submitEdit} icon={<Icn name="Check" size={13} />}>Salvar</PrimaryBtn>
+        </>}>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/70 mb-1.5">Nome <span className="text-red-600">*</span></label>
+              <input value={editForm.name} onChange={e => setEditForm(s => ({ ...s, name: e.target.value }))}
+                className="w-full px-3 py-2 text-sm bg-[#F4F6FB] border border-[#0F1B3D]/15 focus:border-[#0F1B3D] focus:bg-white outline-none" />
+            </div>
+            <div>
+              <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/70 mb-1.5">Tagline</label>
+              <input value={editForm.tagline} onChange={e => setEditForm(s => ({ ...s, tagline: e.target.value }))}
+                className="w-full px-3 py-2 text-sm bg-[#F4F6FB] border border-[#0F1B3D]/15 focus:border-[#0F1B3D] focus:bg-white outline-none" />
+            </div>
+          </div>
+          <div>
+            <label className="block text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/70 mb-1.5">Cor de Acento</label>
+            <div className="flex items-center gap-2">
+              <input type="color"
+                value={/^#[0-9a-fA-F]{6}$/.test(parseColor(editForm.colorInput)) ? parseColor(editForm.colorInput) : editForm.accent}
+                onChange={e => setEditForm(s => ({ ...s, accent: e.target.value, colorInput: e.target.value }))}
+                className="h-10 w-14 border border-[#0F1B3D]/15 cursor-pointer shrink-0" />
+              <div className="flex-1">
+                <input
+                  value={editForm.colorInput}
+                  onChange={e => {
+                    const raw = e.target.value;
+                    const hex = parseColor(raw);
+                    setEditForm(s => ({ ...s, colorInput: raw, accent: /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : s.accent }));
+                  }}
+                  className="w-full px-3 py-2 text-sm bg-[#F4F6FB] border border-[#0F1B3D]/15 focus:border-[#0F1B3D] focus:bg-white outline-none font-mono"
+                  placeholder="#1A4A8C ou rgb(26, 74, 140)" />
+              </div>
+            </div>
+            <p className="text-[10px] text-[#0F1B3D]/45 mt-1.5">
+              Aceita: <code className="bg-[#F4F6FB] px-1">#RRGGBB</code> · <code className="bg-[#F4F6FB] px-1">rgb(r, g, b)</code>
+            </p>
+            {/* Preview swatch */}
+            <div className="mt-3 flex items-center gap-3">
+              <div className="h-9 w-9 shrink-0 flex items-center justify-center text-white text-[11px] font-black"
+                   style={{ background: /^#[0-9a-fA-F]{6}$/.test(parseColor(editForm.colorInput)) ? parseColor(editForm.colorInput) : editForm.accent, clipPath: 'polygon(0 0,100% 0,100% 70%,80% 100%,0 100%)', fontFamily:"'Barlow Condensed',sans-serif" }}>
+                {editForm.name.slice(0,2).toUpperCase() || '??'}
+              </div>
+              <div>
+                <div className="text-xs font-bold text-[#0F1B3D]">{editForm.name || '—'}</div>
+                <div className="text-[10px] text-[#0F1B3D]/50 font-mono">
+                  {/^#[0-9a-fA-F]{6}$/.test(parseColor(editForm.colorInput)) ? parseColor(editForm.colorInput) : editForm.accent}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </Modal>
