@@ -65,13 +65,19 @@ CREATE INDEX IF NOT EXISTS idx_companies_holding_id   ON companies(holding_id);
 CREATE INDEX IF NOT EXISTS idx_brands_company_slug    ON brands(company_slug);
 
 -- ── Configurações de Catálogo ────────────────────────────────────────────────
--- Armazena portada e template por entidade (empresa ou marca)
 CREATE TABLE IF NOT EXISTS catalog_configs (
-  entity_slug  text PRIMARY KEY,
-  cover_url    text,
-  template     text DEFAULT 'moderno',
-  updated_at   timestamptz DEFAULT now()
+  entity_slug           text PRIMARY KEY,
+  cover_url             text,
+  back_cover_url        text,
+  template              text    DEFAULT 'moderno',
+  show_category_covers  boolean DEFAULT true,
+  show_brand_dividers   boolean DEFAULT true,
+  updated_at            timestamptz DEFAULT now()
 );
+-- Adiciona colunas novas se a tabela já existia
+ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS back_cover_url       text;
+ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS show_category_covers boolean DEFAULT true;
+ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS show_brand_dividers  boolean DEFAULT true;
 
 -- ── Portadas de Categorias ────────────────────────────────────────────────────
 -- Imagem separadora por categoria dentro de um catálogo

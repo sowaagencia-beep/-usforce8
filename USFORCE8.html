@@ -177,7 +177,15 @@
             }
             if (catCfgs?.length) {
               const map = {};
-              catCfgs.forEach(c => { map[c.entity_slug] = { coverUrl: c.cover_url, template: c.template }; });
+              catCfgs.forEach(c => {
+                map[c.entity_slug] = {
+                  coverUrl:           c.cover_url,
+                  backCoverUrl:       c.back_cover_url || '',
+                  template:           c.template,
+                  showCategoryCovers: c.show_category_covers ?? true,
+                  showBrandDividers:  c.show_brand_dividers  ?? true,
+                };
+              });
               setCatalogConfigs(map);
             }
             if (catCovs?.length) {
@@ -340,7 +348,15 @@
         setCatalogConfigs(m => ({ ...m, [slug]: config }));
         setCategoryCoverUrls(m => ({ ...m, [slug]: catCovers }));
         if (sb) {
-          await sb.from('catalog_configs').upsert({ entity_slug: slug, cover_url: config.coverUrl, template: config.template, updated_at: new Date().toISOString() });
+          await sb.from('catalog_configs').upsert({
+            entity_slug:          slug,
+            cover_url:            config.coverUrl        || null,
+            back_cover_url:       config.backCoverUrl    || null,
+            template:             config.template,
+            show_category_covers: config.showCategoryCovers ?? true,
+            show_brand_dividers:  config.showBrandDividers  ?? true,
+            updated_at:           new Date().toISOString(),
+          });
           const rows = Object.entries(catCovers).map(([category_name, cover_url]) => ({ entity_slug: slug, category_name, cover_url }));
           if (rows.length) await sb.from('category_covers').upsert(rows, { onConflict: 'entity_slug,category_name' });
         }

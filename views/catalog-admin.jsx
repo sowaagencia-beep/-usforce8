@@ -8,7 +8,18 @@ function CatalogAdminView({
 }) {
   const { getSlugsUnder } = window.USFORCE_DATA;
 
-  // All categories relevant to this entity (brands included)
+  // Detect if this entity is a parent company that owns brands
+  const brandList = useMemoCA(() => {
+    for (const h of holdings) {
+      for (const c of h.companies) {
+        if (c.slug === entitySlug) return c.brands || [];
+      }
+    }
+    return [];
+  }, [entitySlug, holdings]);
+  const isParentCompany = brandList.length > 0;
+
+  // All categories relevant to this entity (own + all brands)
   const allCats = useMemoCA(() => {
     const slugs = getSlugsUnder(entitySlug, holdings);
     const out = [];
@@ -16,17 +27,21 @@ function CatalogAdminView({
     return out;
   }, [entitySlug, holdings, categories]);
 
-  const [coverUrl,   setCoverUrl]   = useStateCatAdm(catalogConfig?.coverUrl || '');
-  const [catCovers,  setCatCovers]  = useStateCatAdm(categoryCoverUrls || {});
-  const [uploading,  setUploading]  = useStateCatAdm(null); // 'cover' | catName | null
-  const [uploadErr,  setUploadErr]  = useStateCatAdm(null);
-  const [saved,      setSaved]      = useStateCatAdm(false);
+  // Form state
+  const [coverUrl,            setCoverUrl]            = useStateCatAdm(catalogConfig?.coverUrl || '');
+  const [backCoverUrl,        setBackCoverUrl]        = useStateCatAdm(catalogConfig?.backCoverUrl || '');
+  const [catCovers,           setCatCovers]           = useStateCatAdm(categoryCoverUrls || {});
+  const [showCategoryCovers,  setShowCategoryCovers]  = useStateCatAdm(catalogConfig?.showCategoryCovers ?? true);
+  const [showBrandDividers,   setShowBrandDividers]   = useStateCatAdm(catalogConfig?.showBrandDividers ?? true);
+  const [uploading,           setUploading]           = useStateCatAdm(null);
+  const [uploadErr,           setUploadErr]           = useStateCatAdm(null);
+  const [saved,               setSaved]               = useStateCatAdm(false);
 
-  const coverRef  = useRefCatAdm(null);
-  const catRefs   = useRefCatAdm({});
+  const coverRef     = useRefCatAdm(null);
+  const backCoverRef = useRefCatAdm(null);
+  const catRefs      = useRefCatAdm({});
 
   const UPLOAD_URL = '/api/upload';
-
   const toBase64 = (file) => new Promise((res, rej) => {
     const r = new FileReader();
     r.onload  = () => res(r.result.split(',')[1]);
@@ -42,75 +57,91 @@ function CatalogAdminView({
       const resp = await fetch(UPLOAD_URL, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fileName: file.name,
-          mimeType: file.type,
-          data:     base64,
-          slug:     `catalogos/${entitySlug}`,
-        }),
+        body: JSON.stringify({ fileName: file.name, mimeType: file.type, data: base64, slug: `catalogos/${entitySlug}` }),
       });
       let result;
       try { result = await resp.json(); } catch { throw new Error(`Erro ${resp.status}`); }
       if (!resp.ok) throw new Error(result.error || `Erro ${resp.status}`);
       return result.url;
-    } catch (err) {
-      setUploadErr(err.message);
-      return null;
-    } finally {
-      setUploading(null);
-    }
+    } catch (err) { setUploadErr(err.message); return null; }
+    finally { setUploading(null); }
   };
 
-  const handleCoverFile = async (e) => {
-    const file = e.target.files?.[0]; if (!file) return; e.target.value = '';
-    const url = await uploadFile(file, 'cover');
-    if (url) setCoverUrl(url);
-  };
-
-  const handleCatFile = async (e, catName) => {
-    const file = e.target.files?.[0]; if (!file) return; e.target.value = '';
-    const url = await uploadFile(file, catName);
-    if (url) setCatCovers(c => ({ ...c, [catName]: url }));
-  };
+  const handleCoverFile    = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; const u = await uploadFile(f, 'cover');     if (u) setCoverUrl(u); };
+  const handleBackFile     = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; const u = await uploadFile(f, 'backcover'); if (u) setBackCoverUrl(u); };
+  const handleCatFile      = async (e, cat) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; const u = await uploadFile(f, cat); if (u) setCatCovers(c => ({ ...c, [cat]: u })); };
 
   const handleSave = () => {
-    onSave(entitySlug, { coverUrl, template: 'moderno' }, catCovers);
+    onSave(entitySlug, { coverUrl, backCoverUrl, template: 'moderno', showCategoryCovers, showBrandDividers }, catCovers);
     setSaved(true);
     setTimeout(() => setSaved(false), 2200);
   };
 
   const accent = entity?.accent || '#1A4A8C';
 
-  function ImgZone({ imgUrl, onClear, onPickFile, loading, label, hint }) {
-    const IcoA = ({ n, ...p }) => { const C = window.lucide[n]; return C ? <C {...p} /> : null; };
+  // ── Shared components ──────────────────────────────────────────────────────
+  const IcnA = ({ name, ...p }) => { const C = window.lucide[name]; return C ? <C {...p} /> : null; };
+
+  function Toggle({ value, onChange, label, desc }) {
+    return (
+      <label className="flex items-start gap-4 cursor-pointer">
+        <div className="relative shrink-0 mt-0.5">
+          <input type="checkbox" className="sr-only" checked={value} onChange={e => onChange(e.target.checked)} />
+          <div className={`w-10 h-5 rounded-full transition-colors ${value ? 'bg-[#0F1B3D]' : 'bg-[#0F1B3D]/20'}`} />
+          <div className={`absolute top-0.5 left-0.5 h-4 w-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : ''}`} />
+        </div>
+        <div>
+          <div className="text-sm font-bold text-[#0F1B3D]">{label}</div>
+          {desc && <div className="text-xs text-[#0F1B3D]/55 mt-0.5 leading-relaxed">{desc}</div>}
+        </div>
+      </label>
+    );
+  }
+
+  function ImgZone({ imgUrl, onClear, onPickFile, loading, label, hint, ratio = '210/297' }) {
     return imgUrl ? (
-      <div className="relative border border-[#0F1B3D]/15 overflow-hidden" style={{ aspectRatio: '16/9' }}>
+      <div className="relative border border-[#0F1B3D]/15 overflow-hidden" style={{ aspectRatio: ratio }}>
         <img src={imgUrl} alt={label} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-black/0 hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 hover:opacity-100">
           <button onClick={onPickFile}
             className="inline-flex items-center gap-2 px-4 py-2 bg-white text-[#0F1B3D] text-[11px] font-bold uppercase tracking-[0.16em]">
-            <IcoA n="RefreshCw" size={12} /> Trocar
+            <IcnA name="RefreshCw" size={12} /> Trocar
           </button>
         </div>
         <button onClick={onClear}
           className="absolute top-2 right-2 h-6 w-6 bg-black/60 hover:bg-black/80 flex items-center justify-center text-white">
-          <IcoA n="X" size={12} />
+          <IcnA name="X" size={12} />
         </button>
       </div>
     ) : (
       <button onClick={onPickFile} disabled={!!loading}
         className="w-full border-2 border-dashed border-[#0F1B3D]/20 hover:border-[#0F1B3D]/50 bg-[#F4F6FB] hover:bg-white transition-colors flex flex-col items-center justify-center gap-2 py-8 text-[#0F1B3D]/50 hover:text-[#0F1B3D] disabled:opacity-50"
-        style={{ aspectRatio: '16/9' }}>
+        style={{ aspectRatio: ratio }}>
         {loading
-          ? <><IcoA n="Loader" size={20} className="animate-spin" /><span className="text-[11px] font-bold uppercase tracking-[0.18em]">Enviando…</span></>
-          : <><IcoA n="ImagePlus" size={22} /><span className="text-[11px] font-bold uppercase tracking-[0.18em]">Clique para enviar</span><span className="text-[10px]">{hint}</span></>
+          ? <><IcnA name="Loader" size={20} className="animate-spin" /><span className="text-[11px] font-bold uppercase tracking-[0.18em]">Enviando…</span></>
+          : <><IcnA name="ImagePlus" size={22} /><span className="text-[11px] font-bold uppercase tracking-[0.18em]">Clique para enviar</span><span className="text-[10px]">{hint}</span></>
         }
       </button>
     );
   }
 
-  const IcnA = ({ name, ...p }) => { const C = window.lucide[name]; return C ? <C {...p} /> : null; };
+  function SectionHeader({ icon, title, desc }) {
+    return (
+      <div className="flex items-center gap-3 mb-5">
+        <div className="h-8 w-8 flex items-center justify-center text-white shrink-0"
+             style={{ background: accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 75% 100%, 0 100%)' }}>
+          <IcnA name={icon} size={14} />
+        </div>
+        <div>
+          <h2 className="text-lg font-black uppercase tracking-tight text-[#0F1B3D]"
+              style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{title}</h2>
+          <p className="text-xs text-[#0F1B3D]/60">{desc}</p>
+        </div>
+      </div>
+    );
+  }
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="h-screen bg-[#F4F6FB] flex flex-col overflow-hidden">
 
@@ -126,7 +157,9 @@ function CatalogAdminView({
             {entity?.name?.slice(0,2).toUpperCase()}
           </div>
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/50">Catálogo</div>
+            <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/50">
+              {isParentCompany ? 'Catálogo da Empresa' : 'Catálogo'}
+            </div>
             <div className="text-base font-black uppercase tracking-tight text-[#0F1B3D]"
                  style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>{entity?.name}</div>
           </div>
@@ -149,104 +182,138 @@ function CatalogAdminView({
             </div>
           )}
 
-          {/* Portada do catálogo */}
+          {/* ── Portada ──────────────────────────────────────────────────── */}
           <section>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="h-8 w-8 flex items-center justify-center text-white"
-                   style={{ background: accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 75% 100%, 0 100%)' }}>
-                <IcnA name="BookOpen" size={14} />
-              </div>
+            <SectionHeader icon="BookOpen" title="Portada do Catálogo" desc="Primeira página do PDF — formato A4 vertical" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-[#0F1B3D]"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Portada do Catálogo</h2>
-                <p className="text-xs text-[#0F1B3D]/60">Imagem de capa — primeira página do PDF</p>
+                <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
+                <ImgZone imgUrl={coverUrl} loading={uploading === 'cover'} label="Portada"
+                  hint="JPG, PNG · proporcão A4 recomendada (794 × 1122 px)"
+                  onClear={() => setCoverUrl('')} onPickFile={() => coverRef.current?.click()} />
+                <p className="mt-2 text-[10px] text-[#0F1B3D]/45 uppercase tracking-[0.15em]">
+                  Se vazio → gerado automaticamente com cores da marca
+                </p>
               </div>
-            </div>
-            <div className="max-w-xl">
-              <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
-              <ImgZone
-                imgUrl={coverUrl}
-                loading={uploading === 'cover'}
-                label="Portada"
-                hint="JPG, PNG · recomendado 1240 × 698 px"
-                onClear={() => setCoverUrl('')}
-                onPickFile={() => coverRef.current?.click()}
-              />
-              <p className="mt-2 text-[10px] text-[#0F1B3D]/50 uppercase tracking-[0.15em]">
-                Se vazio, será gerado automaticamente com as cores da marca
-              </p>
+              <div className="flex flex-col justify-center gap-3 bg-white border border-[#0F1B3D]/10 p-5">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/50 mb-1">Formato PDF</div>
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-black text-[#0F1B3D]" style={{ fontFamily:"'Barlow Condensed', sans-serif" }}>A4</span>
+                  <span className="text-xs text-[#0F1B3D]/60">210 × 297 mm · Vertical</span>
+                </div>
+                <div className="text-[11px] text-[#0F1B3D]/60 leading-relaxed">
+                  1 produto por página · Alta resolução (2×) · Exportação direta em PDF
+                </div>
+              </div>
             </div>
           </section>
 
-          {/* Portadas de Categorias */}
-          <section>
-            <div className="flex items-center gap-3 mb-5">
-              <div className="h-8 w-8 flex items-center justify-center text-white"
-                   style={{ background: accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 75% 100%, 0 100%)' }}>
-                <IcnA name="Layers" size={14} />
-              </div>
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-[#0F1B3D]"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Portadas por Categoria</h2>
-                <p className="text-xs text-[#0F1B3D]/60">Página separadora antes dos produtos de cada categoria</p>
-              </div>
-            </div>
+          {/* ── Opções de estrutura ───────────────────────────────────────── */}
+          <section className="bg-white border border-[#0F1B3D]/10 p-6">
+            <SectionHeader icon="Settings" title="Opções de Estrutura" desc="Defina quais páginas separadoras serão incluídas" />
+            <div className="space-y-5">
 
-            {allCats.length === 0 ? (
-              <div className="bg-white border border-[#0F1B3D]/10 py-10 text-center text-sm text-[#0F1B3D]/50">
-                Nenhuma categoria cadastrada para esta entidade.
-              </div>
-            ) : (
+              <Toggle
+                value={showCategoryCovers}
+                onChange={setShowCategoryCovers}
+                label="Incluir separadores de categoria"
+                desc="Uma página divisória (com ou sem imagem) antes dos produtos de cada categoria"
+              />
+
+              {isParentCompany && (
+                <Toggle
+                  value={showBrandDividers}
+                  onChange={setShowBrandDividers}
+                  label={`Incluir separadores de marca (${brandList.map(b => b.name).join(', ')})`}
+                  desc="Página divisória antes dos produtos de cada marca — útil para catálogos multi-marca"
+                />
+              )}
+
+            </div>
+          </section>
+
+          {/* ── Portadas de Marcas (só empresa-mãe) ──────────────────────── */}
+          {isParentCompany && showBrandDividers && (
+            <section>
+              <SectionHeader icon="Tag" title="Portadas por Marca"
+                desc={`Imagem de capa para cada marca de ${entity?.name} — aparece antes dos produtos da marca`} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                {allCats.map(cat => (
-                  <div key={cat} className="bg-white border border-[#0F1B3D]/10 p-4">
+                {brandList.map(brand => (
+                  <div key={brand.slug} className="bg-white border border-[#0F1B3D]/10 p-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0F1B3D]">{cat}</span>
-                      {catCovers[cat] && (
+                      <div className="h-5 w-5 flex items-center justify-center text-white text-[9px] font-black shrink-0"
+                           style={{ background: brand.accent || accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 80% 100%, 0 100%)', fontFamily:"'Barlow Condensed', sans-serif" }}>
+                        {brand.name.slice(0,2).toUpperCase()}
+                      </div>
+                      <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0F1B3D]">{brand.name}</span>
+                      {catCovers[`brand:${brand.slug}`] && (
                         <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5">Com imagem</span>
                       )}
                     </div>
                     <input
-                      ref={el => { catRefs.current[cat] = el; }}
+                      ref={el => { catRefs.current[`brand:${brand.slug}`] = el; }}
                       type="file" accept="image/*" className="hidden"
-                      onChange={e => handleCatFile(e, cat)}
+                      onChange={e => handleCatFile(e, `brand:${brand.slug}`)}
                     />
                     <ImgZone
-                      imgUrl={catCovers[cat] || ''}
-                      loading={uploading === cat}
-                      label={cat}
-                      hint="JPG, PNG · recomendado 1240 × 698 px"
-                      onClear={() => setCatCovers(c => { const n = { ...c }; delete n[cat]; return n; })}
-                      onPickFile={() => catRefs.current[cat]?.click()}
+                      imgUrl={catCovers[`brand:${brand.slug}`] || ''}
+                      loading={uploading === `brand:${brand.slug}`}
+                      label={brand.name}
+                      hint="JPG, PNG · 794 × 1122 px"
+                      onClear={() => setCatCovers(c => { const n = { ...c }; delete n[`brand:${brand.slug}`]; return n; })}
+                      onPickFile={() => catRefs.current[`brand:${brand.slug}`]?.click()}
                     />
                   </div>
                 ))}
               </div>
-            )}
-          </section>
+            </section>
+          )}
 
-          {/* Info Template */}
-          <section className="bg-white border border-[#0F1B3D]/10 p-6">
-            <div className="flex items-start gap-4">
-              <div className="h-10 w-10 shrink-0 flex items-center justify-center text-white"
-                   style={{ background: accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 75% 100%, 0 100%)' }}>
-                <IcnA name="Layout" size={16} />
-              </div>
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-tight text-[#0F1B3D]"
-                    style={{ fontFamily: "'Barlow Condensed', sans-serif" }}>Template Moderno</h3>
-                <p className="text-xs text-[#0F1B3D]/60 mt-1 leading-relaxed">
-                  Cada produto ocupa uma página A4 inteira. Foto à esquerda (50%), painel com cor da marca à direita (50%).
-                  Inclui nome do produto, 5 estrelas, código, origem, embalagem e descrição.
-                </p>
-                <div className="mt-3 flex items-center gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-[0.16em] text-[#0F1B3D]/50">Estrutura:</span>
-                  {['Portada', 'Separador', 'Produto × N', 'Separador', '…'].map((s, i) => (
-                    <span key={i} className="text-[10px] font-bold uppercase tracking-[0.14em] text-white px-2 py-0.5"
-                          style={{ background: i % 2 === 0 ? accent : '#0F1B3D' }}>{s}</span>
+          {/* ── Portadas de Categorias ────────────────────────────────────── */}
+          {showCategoryCovers && (
+            <section>
+              <SectionHeader icon="Layers" title="Portadas por Categoria"
+                desc="Página separadora antes dos produtos de cada categoria — opcional por categoria" />
+              {allCats.length === 0 ? (
+                <div className="bg-white border border-[#0F1B3D]/10 py-10 text-center text-sm text-[#0F1B3D]/50">
+                  Nenhuma categoria cadastrada para esta entidade.
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  {allCats.map(cat => (
+                    <div key={cat} className="bg-white border border-[#0F1B3D]/10 p-4">
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0F1B3D]">{cat}</span>
+                        {catCovers[cat] ? (
+                          <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5">Com imagem</span>
+                        ) : (
+                          <span className="text-[9px] uppercase tracking-[0.15em] text-[#0F1B3D]/40 font-bold bg-[#F4F6FB] px-2 py-0.5">Auto</span>
+                        )}
+                      </div>
+                      <input ref={el => { catRefs.current[cat] = el; }} type="file" accept="image/*" className="hidden"
+                        onChange={e => handleCatFile(e, cat)} />
+                      <ImgZone imgUrl={catCovers[cat] || ''} loading={uploading === cat} label={cat}
+                        hint="JPG, PNG · 794 × 1122 px"
+                        onClear={() => setCatCovers(c => { const n = { ...c }; delete n[cat]; return n; })}
+                        onPickFile={() => catRefs.current[cat]?.click()} />
+                    </div>
                   ))}
                 </div>
-              </div>
+              )}
+            </section>
+          )}
+
+          {/* ── Contra-portada ────────────────────────────────────────────── */}
+          <section>
+            <SectionHeader icon="BookMarked" title="Contra-portada" desc="Última página do catálogo — opcional" />
+            <div className="max-w-xs">
+              <input ref={backCoverRef} type="file" accept="image/*" className="hidden" onChange={handleBackFile} />
+              <ImgZone imgUrl={backCoverUrl} loading={uploading === 'backcover'} label="Contra-portada"
+                hint="JPG, PNG · 794 × 1122 px"
+                onClear={() => setBackCoverUrl('')} onPickFile={() => backCoverRef.current?.click()} />
+              <p className="mt-2 text-[10px] text-[#0F1B3D]/45 uppercase tracking-[0.15em]">
+                Se vazio → não será adicionada contra-portada
+              </p>
             </div>
           </section>
 
