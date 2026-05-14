@@ -72,8 +72,7 @@ function renderBlock(block, { product, entity, logoUrl, colors }) {
   switch (block.type) {
     case 'logo':
       return logoUrl ? (
-        <img src={logoUrl} alt={entity?.name} crossOrigin="anonymous"
-          style={{ maxHeight:'52px', maxWidth:'130px', objectFit:'contain',
+        <img src={logoUrl} alt={entity?.name}          style={{ maxHeight:'52px', maxWidth:'130px', objectFit:'contain',
                    filter: isLight ? 'none' : 'brightness(0) invert(1)' }} />
       ) : (
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
@@ -176,8 +175,7 @@ function CoverPage({ entity, imgUrl, logoUrl, label, year }) {
   if (imgUrl) {
     return (
       <PageShell bgColor="#000">
-        <img src={imgUrl} alt={label} crossOrigin="anonymous"
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }} />
+        <img src={imgUrl} alt={label}          style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }} />
       </PageShell>
     );
   }
@@ -190,8 +188,7 @@ function CoverPage({ entity, imgUrl, logoUrl, label, year }) {
 
       <div style={{ position:'relative', zIndex:1, flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px', textAlign:'center' }}>
         {logoUrl ? (
-          <img src={logoUrl} alt={entity?.name} crossOrigin="anonymous"
-            style={{ maxHeight:'90px', maxWidth:'260px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'32px' }} />
+          <img src={logoUrl} alt={entity?.name}            style={{ maxHeight:'90px', maxWidth:'260px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'32px' }} />
         ) : (
           <div style={{ display:'flex', alignItems:'center', gap:'18px', marginBottom:'28px' }}>
             <div style={{
@@ -238,8 +235,7 @@ function BrandPage({ parentEntity, brand, imgUrl, logoUrl, year }) {
   if (imgUrl) {
     return (
       <PageShell bgColor="#000">
-        <img src={imgUrl} alt={brand?.name} crossOrigin="anonymous"
-          style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }} />
+        <img src={imgUrl} alt={brand?.name}          style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }} />
       </PageShell>
     );
   }
@@ -255,8 +251,7 @@ function BrandPage({ parentEntity, brand, imgUrl, logoUrl, year }) {
           {parentEntity?.name} · <span style={{ color:'rgba(255,255,255,0.7)' }}>Catálogo {year}</span>
         </div>
         {logoUrl ? (
-          <img src={logoUrl} alt={brand?.name} crossOrigin="anonymous"
-            style={{ maxHeight:'80px', maxWidth:'240px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'20px' }} />
+          <img src={logoUrl} alt={brand?.name}            style={{ maxHeight:'80px', maxWidth:'240px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'20px' }} />
         ) : (
           <div style={{ display:'flex', alignItems:'center', gap:'14px', marginBottom:'20px' }}>
             <div style={{
@@ -300,8 +295,7 @@ function CategoryPage({ entity, catName, imgUrl }) {
   return (
     <PageShell bgColor="#0F1B3D">
       {imgUrl
-        ? <img src={imgUrl} alt={catName} crossOrigin="anonymous"
-            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
+        ? <img src={imgUrl} alt={catName}            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
         : <div style={{ position:'absolute', inset:0, background:`linear-gradient(150deg,${accent} 0%,#0F1B3D 70%)` }} />
       }
       <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.45)' }} />
@@ -344,8 +338,7 @@ function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl }) 
       {/* Header */}
       <div style={{ height:`${HDR_H}px`, background:'#fff', borderBottom:'2px solid #F0F2F8', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 26px', flexShrink:0 }}>
         {logoUrl ? (
-          <img src={logoUrl} alt={entity?.name} crossOrigin="anonymous"
-            onError={(e)=>{ e.currentTarget.style.display='none'; const fb=e.currentTarget.nextElementSibling; if(fb) fb.style.display='flex'; }}
+          <img src={logoUrl} alt={entity?.name}            onError={(e)=>{ e.currentTarget.style.display='none'; const fb=e.currentTarget.nextElementSibling; if(fb) fb.style.display='flex'; }}
             style={{ height:'38px', maxWidth:'180px', width:'auto', objectFit:'contain', display:'block' }} />
         ) : null}
         <div style={{ display: logoUrl ? 'none' : 'flex', alignItems:'center', gap:'10px' }}>
@@ -373,8 +366,7 @@ function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl }) 
         {/* Esquerda: foto */}
         <div style={{ width:`${LEFT_W}px`, height:`${BODY_H}px`, background:'#FAFBFD', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
           {imgUrl
-            ? <img src={imgUrl} alt={product.name} crossOrigin="anonymous"
-                style={{ width:'auto', height:'auto', maxWidth:'100%', maxHeight:'100%', display:'block', objectFit:'contain' }} />
+            ? <img src={imgUrl} alt={product.name}                style={{ width:'auto', height:'auto', maxWidth:'100%', maxHeight:'100%', display:'block', objectFit:'contain' }} />
             : (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px', color:'rgba(15,27,61,0.18)' }}>
                 <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
