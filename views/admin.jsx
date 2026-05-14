@@ -652,24 +652,25 @@ function AdminProductCard({ product, entity, onEdit, onDuplicate, onView, onDele
           </div>
         </div>
       </div>
-      <div className="px-4 py-3 border-t border-[#0F1B3D]/10 flex items-center justify-between text-[11px]">
-        <span className="font-bold uppercase tracking-[0.16em] text-[#0F1B3D]/50">Cód: {product.code}</span>
-        <div className="flex items-center gap-2">
-          <button onClick={onView} className="text-[#0F1B3D]/60 hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
-            <Icn name="Eye" size={11} /> Ver
+      <div className="px-3 py-2.5 border-t border-[#0F1B3D]/10 flex items-center justify-between gap-2 text-[9px] whitespace-nowrap">
+        <span className="font-bold uppercase tracking-[0.12em] text-[#0F1B3D]/50 truncate">Cód: {product.code}</span>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button onClick={onView} title="Ver produto"
+            className="text-[#0F1B3D]/60 hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.12em]">
+            <Icn name="Eye" size={10} /> Ver
           </button>
-          <button onClick={onEdit} className="text-[#1E5BC6] hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
-            <Icn name="Pencil" size={11} /> Editar
+          <button onClick={onEdit} title="Editar produto"
+            className="text-[#1E5BC6] hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.12em]">
+            <Icn name="Pencil" size={10} /> Editar
           </button>
           <button onClick={onDuplicate} title="Duplicar produto"
-            className="text-[#0F1B3D]/60 hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.14em]">
-            <Icn name="Copy" size={11} /> Duplicar
+            className="text-[#0F1B3D]/60 hover:text-[#0F1B3D] flex items-center gap-1 font-bold uppercase tracking-[0.12em]">
+            <Icn name="Copy" size={10} /> Dup.
           </button>
           <button onClick={handleDelete}
-            className={`flex items-center gap-1 font-bold uppercase tracking-[0.14em] transition-colors ${confirmDel ? 'text-red-600' : 'text-[#0F1B3D]/30 hover:text-red-500'}`}
+            className={`flex items-center font-bold uppercase tracking-[0.12em] transition-colors ${confirmDel ? 'text-red-600' : 'text-[#0F1B3D]/30 hover:text-red-500'}`}
             title={confirmDel ? 'Clique para confirmar' : 'Excluir produto'}>
-            <Icn name={confirmDel ? 'Trash2' : 'Trash2'} size={11} />
-            {confirmDel ? 'Confirmar?' : ''}
+            <Icn name="Trash2" size={10} />
           </button>
         </div>
       </div>
