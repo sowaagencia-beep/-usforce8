@@ -285,6 +285,29 @@ function PublicShowcaseView({ companySlug, products, holdings, categories, heroI
 
       {/* Products */}
       <main className="flex-1 w-full px-8 py-10">
+        {catalogConfig && (
+          <div className="mb-8 flex items-center justify-between gap-4 bg-white border border-[#0F1B3D]/10 px-5 py-4"
+               style={{ clipPath: 'polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%)' }}>
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="h-10 w-10 flex items-center justify-center text-white shrink-0"
+                   style={{ background: entity?.accent || '#1A4A8C', clipPath: 'polygon(0 0, 100% 0, 100% 70%, 78% 100%, 0 100%)' }}>
+                <Ic name="FileText" size={18} />
+              </div>
+              <div className="min-w-0">
+                <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#0F1B3D]/50">Catálogo {new Date().getFullYear()}</div>
+                <div className="text-sm font-bold text-[#0F1B3D] truncate" style={{ fontFamily: "'Barlow Condensed', sans-serif", letterSpacing: '0.02em' }}>
+                  Baixe o catálogo completo de {entity?.name} em PDF
+                </div>
+              </div>
+            </div>
+            <button onClick={onOpenCatalog}
+              className="shrink-0 inline-flex items-center gap-2 px-5 py-2.5 text-white text-[11px] font-bold uppercase tracking-[0.16em] transition-colors hover:brightness-110"
+              style={{ background: entity?.accent || '#1A4A8C', clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)' }}>
+              <Ic name="Download" size={14} /> Baixar PDF
+            </button>
+          </div>
+        )}
+
         {pageItems.length === 0 ? (
           <div className="text-center py-24">
             <Ic name="PackageX" size={32} className="mx-auto text-[#0F1B3D]/30" />
