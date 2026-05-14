@@ -8,7 +8,7 @@ function AdminView({
   products, holdings, categories,
   onNavigate, onLogout, onNewProduct, onEditProduct, onDeleteProduct,
   onCreateHolding, onCreateCompany, onCreateBrand,
-  adminEmail,
+  adminEmail, catalogConfigs,
 }) {
   const { fmtNum, fmtDate, buildEntityMap, getSlugsUnder } = window.USFORCE_DATA;
 
@@ -305,6 +305,13 @@ function AdminView({
                     onClick={() => onNavigate({ view: 'public-showcase', selectedCompanySlug: selectedSlug })}
                     icon={<Icn name="ExternalLink" size={13} />}>
                     Ver Vitrine
+                  </GhostBtn>
+                )}
+                {selectedSlug && (
+                  <GhostBtn
+                    onClick={() => onNavigate({ view: 'catalog-admin', selectedCompanySlug: selectedSlug })}
+                    icon={<Icn name="BookOpen" size={13} />}>
+                    {catalogConfigs?.[selectedSlug] ? 'Editar Catálogo' : 'Criar Catálogo'}
                   </GhostBtn>
                 )}
                 <PrimaryBtn onClick={onNewProduct} icon={<Icn name="Plus" size={14} />}>Cadastrar Produto</PrimaryBtn>

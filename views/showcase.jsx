@@ -4,7 +4,7 @@ const { useState: useStateShow, useMemo: useMemoShow, useRef: useRefShow } = Rea
 
 function Ic({ name, ...p }) { const C = window.lucide[name]; return C ? <C {...p} /> : null; }
 
-function PublicShowcaseView({ companySlug, products, holdings, categories, heroImage, onSelectProduct, onBackToAdmin, onUpdateHero, fromAdmin }) {
+function PublicShowcaseView({ companySlug, products, holdings, categories, heroImage, onSelectProduct, onBackToAdmin, onUpdateHero, fromAdmin, catalogConfig, onOpenCatalog }) {
   const { buildEntityMap, getSlugsUnder } = window.USFORCE_DATA;
 
   const entityMap = buildEntityMap(holdings);
@@ -147,6 +147,15 @@ function PublicShowcaseView({ companySlug, products, holdings, categories, heroI
               </p>
             </div>
           </div>
+        )}
+
+        {/* Botão catálogo — visível para todos quando existe config */}
+        {catalogConfig && (
+          <button onClick={onOpenCatalog}
+            className="absolute bottom-3 left-3 inline-flex items-center gap-2 px-4 py-2 text-white text-[11px] font-bold uppercase tracking-[0.16em] backdrop-blur-sm transition-colors hover:brightness-110"
+            style={{ background: entity?.accent || '#1A4A8C', clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
+            <Ic name="Download" size={14} /> Catálogo PDF
+          </button>
         )}
 
         {fromAdmin && (

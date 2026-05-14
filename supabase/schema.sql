@@ -64,19 +64,38 @@ CREATE INDEX IF NOT EXISTS idx_categories_entity_slug ON categories(entity_slug)
 CREATE INDEX IF NOT EXISTS idx_companies_holding_id   ON companies(holding_id);
 CREATE INDEX IF NOT EXISTS idx_brands_company_slug    ON brands(company_slug);
 
+-- ── Configurações de Catálogo ────────────────────────────────────────────────
+-- Armazena portada e template por entidade (empresa ou marca)
+CREATE TABLE IF NOT EXISTS catalog_configs (
+  entity_slug  text PRIMARY KEY,
+  cover_url    text,
+  template     text DEFAULT 'moderno',
+  updated_at   timestamptz DEFAULT now()
+);
+
+-- ── Portadas de Categorias ────────────────────────────────────────────────────
+-- Imagem separadora por categoria dentro de um catálogo
+CREATE TABLE IF NOT EXISTS category_covers (
+  id            serial PRIMARY KEY,
+  entity_slug   text NOT NULL,
+  category_name text NOT NULL,
+  cover_url     text,
+  UNIQUE (entity_slug, category_name)
+);
+
 -- ── Row Level Security ────────────────────────────────────────────────────────
--- Leitura pública (vitrines) + escrita irrestrita com anon key
--- Ajuste as policies para autenticação real quando quiser
+ALTER TABLE holdings        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE companies       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE brands          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE categories      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE products        ENABLE ROW LEVEL SECURITY;
+ALTER TABLE catalog_configs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE category_covers ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE holdings   ENABLE ROW LEVEL SECURITY;
-ALTER TABLE companies  ENABLE ROW LEVEL SECURITY;
-ALTER TABLE brands     ENABLE ROW LEVEL SECURITY;
-ALTER TABLE categories ENABLE ROW LEVEL SECURITY;
-ALTER TABLE products   ENABLE ROW LEVEL SECURITY;
-
--- Permite tudo para usuário anônimo (MVP — ajuste depois com auth real)
-CREATE POLICY "public_all" ON holdings   FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON companies  FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON brands     FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON categories FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON products   FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON holdings        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON companies       FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON brands          FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON categories      FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON products        FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON catalog_configs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "public_all" ON category_covers FOR ALL USING (true) WITH CHECK (true);

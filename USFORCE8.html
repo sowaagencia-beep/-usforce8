@@ -19,6 +19,10 @@
 <!-- Supabase JS SDK -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 
+<!-- PDF generation -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 <!-- Configurações públicas (Supabase URL + anon key) -->
 <script src="config.js"></script>
 
@@ -83,6 +87,8 @@
   <script type="text/babel" src="views/product-form.jsx"></script>
   <script type="text/babel" src="views/showcase.jsx"></script>
   <script type="text/babel" src="views/product-detail.jsx"></script>
+  <script type="text/babel" src="views/catalog-admin.jsx"></script>
+  <script type="text/babel" src="views/catalog-preview.jsx"></script>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
@@ -116,11 +122,13 @@
     };
 
     function App() {
-      const [products,   setProducts]   = useState(window.USFORCE_DATA.PRODUCTS);
-      const [holdings,   setHoldings]   = useState(window.USFORCE_DATA.HOLDINGS);
-      const [categories, setCategories] = useState(window.USFORCE_DATA.CATEGORIES);
-      const [heroImages, setHeroImages] = useState(window.USFORCE_DATA.HERO_IMAGES);
-      const [dbReady,    setDbReady]    = useState(!sb); // true immediately if no Supabase
+      const [products,          setProducts]          = useState(window.USFORCE_DATA.PRODUCTS);
+      const [holdings,          setHoldings]          = useState(window.USFORCE_DATA.HOLDINGS);
+      const [categories,        setCategories]        = useState(window.USFORCE_DATA.CATEGORIES);
+      const [heroImages,        setHeroImages]        = useState(window.USFORCE_DATA.HERO_IMAGES);
+      const [catalogConfigs,    setCatalogConfigs]    = useState({});
+      const [categoryCoverUrls, setCategoryCoverUrls] = useState({});
+      const [dbReady,           setDbReady]           = useState(!sb);
 
       // ── Carrega dados do Supabase na inicialização ──────────────────────────
       useEffect(() => {
@@ -128,17 +136,21 @@
         (async () => {
           try {
             const [
-              { data: prods  },
-              { data: holds  },
-              { data: comps  },
-              { data: brnds  },
-              { data: cats   },
+              { data: prods    },
+              { data: holds    },
+              { data: comps    },
+              { data: brnds    },
+              { data: cats     },
+              { data: catCfgs  },
+              { data: catCovs  },
             ] = await Promise.all([
               sb.from('products').select('*').order('created_at', { ascending: false }),
               sb.from('holdings').select('*'),
               sb.from('companies').select('*'),
               sb.from('brands').select('*'),
               sb.from('categories').select('*'),
+              sb.from('catalog_configs').select('*'),
+              sb.from('category_covers').select('*'),
             ]);
 
             if (prods?.length)  setProducts(prods.map(fromDb.product));
@@ -162,6 +174,19 @@
               const map = {};
               cats.forEach(c => { (map[c.entity_slug] = map[c.entity_slug] || []).push(c.name); });
               setCategories(map);
+            }
+            if (catCfgs?.length) {
+              const map = {};
+              catCfgs.forEach(c => { map[c.entity_slug] = { coverUrl: c.cover_url, template: c.template }; });
+              setCatalogConfigs(map);
+            }
+            if (catCovs?.length) {
+              const map = {};
+              catCovs.forEach(c => {
+                if (!map[c.entity_slug]) map[c.entity_slug] = {};
+                map[c.entity_slug][c.category_name] = c.cover_url;
+              });
+              setCategoryCoverUrls(map);
             }
           } catch (e) {
             console.warn('Supabase: usando dados locais.', e.message);
@@ -311,6 +336,17 @@
         toast('Produto excluído');
       };
 
+      const handleSaveCatalogConfig = async (slug, config, catCovers) => {
+        setCatalogConfigs(m => ({ ...m, [slug]: config }));
+        setCategoryCoverUrls(m => ({ ...m, [slug]: catCovers }));
+        if (sb) {
+          await sb.from('catalog_configs').upsert({ entity_slug: slug, cover_url: config.coverUrl, template: config.template, updated_at: new Date().toISOString() });
+          const rows = Object.entries(catCovers).map(([category_name, cover_url]) => ({ entity_slug: slug, category_name, cover_url }));
+          if (rows.length) await sb.from('category_covers').upsert(rows, { onConflict: 'entity_slug,category_name' });
+        }
+        toast('Catálogo salvo com sucesso');
+      };
+
       const handleDeleteCategory = async (slug, name) => {
         setCategories(c => ({ ...c, [slug]: (c[slug] || []).filter(n => n !== name) }));
         if (sb) {
@@ -358,6 +394,7 @@
               onCreateCompany={handleCreateCompany}
               onCreateBrand={handleCreateBrand}
               adminEmail={state.adminEmail}
+              catalogConfigs={catalogConfigs}
             />
           )}
 
@@ -381,8 +418,49 @@
               onBackToAdmin={handleBackToAdmin}
               onUpdateHero={handleUpdateHero}
               fromAdmin={state.isAuthenticated}
+              catalogConfig={catalogConfigs[state.selectedCompanySlug]}
+              onOpenCatalog={() => navigate({ view: 'catalog-preview' })}
             />
           )}
+
+          {state.view === 'catalog-admin' && state.selectedCompanySlug && (() => {
+            const { buildEntityMap } = window.USFORCE_DATA;
+            const em = buildEntityMap(holdings);
+            const ent = em[state.selectedCompanySlug];
+            return (
+              <CatalogAdminView
+                entitySlug={state.selectedCompanySlug}
+                entity={ent}
+                holdings={holdings}
+                categories={categories}
+                catalogConfig={catalogConfigs[state.selectedCompanySlug]}
+                categoryCoverUrls={categoryCoverUrls[state.selectedCompanySlug] || {}}
+                onSave={handleSaveCatalogConfig}
+                onPreview={() => navigate({ view: 'catalog-preview' })}
+                onBack={() => navigate({ view: 'admin-dashboard' })}
+              />
+            );
+          })()}
+
+          {state.view === 'catalog-preview' && state.selectedCompanySlug && (() => {
+            const { buildEntityMap } = window.USFORCE_DATA;
+            const em = buildEntityMap(holdings);
+            const ent = em[state.selectedCompanySlug];
+            return (
+              <CatalogPreviewView
+                entitySlug={state.selectedCompanySlug}
+                entity={ent}
+                products={products}
+                holdings={holdings}
+                categories={categories}
+                catalogConfig={catalogConfigs[state.selectedCompanySlug] || {}}
+                categoryCoverUrls={categoryCoverUrls[state.selectedCompanySlug] || {}}
+                fromAdmin={state.isAuthenticated}
+                onBack={() => navigate({ view: state.isAuthenticated ? 'admin-dashboard' : 'public-showcase' })}
+                onGoAdmin={state.isAuthenticated ? () => navigate({ view: 'catalog-admin' }) : null}
+              />
+            );
+          })()}
 
           {state.view === 'public-product-detail' && selectedProduct && (
             <PublicProductDetailView
