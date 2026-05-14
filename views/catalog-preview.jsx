@@ -72,7 +72,7 @@ function renderBlock(block, { product, entity, logoUrl, colors }) {
   switch (block.type) {
     case 'logo':
       return logoUrl ? (
-        <img src={logoUrl} alt={entity?.name}          style={{ maxHeight:'52px', maxWidth:'130px', objectFit:'contain',
+        <img src={logoUrl} alt={entity?.name}          style={{ height:'52px', width:'auto', maxWidth:'130px', objectFit:'contain',
                    filter: isLight ? 'none' : 'brightness(0) invert(1)' }} />
       ) : (
         <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
@@ -188,7 +188,7 @@ function CoverPage({ entity, imgUrl, logoUrl, label, year }) {
 
       <div style={{ position:'relative', zIndex:1, flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px', textAlign:'center' }}>
         {logoUrl ? (
-          <img src={logoUrl} alt={entity?.name}            style={{ maxHeight:'90px', maxWidth:'260px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'32px' }} />
+          <img src={logoUrl} alt={entity?.name}            style={{ height:'90px', width:'auto', maxWidth:'260px', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'32px' }} />
         ) : (
           <div style={{ display:'flex', alignItems:'center', gap:'18px', marginBottom:'28px' }}>
             <div style={{
@@ -251,7 +251,7 @@ function BrandPage({ parentEntity, brand, imgUrl, logoUrl, year }) {
           {parentEntity?.name} · <span style={{ color:'rgba(255,255,255,0.7)' }}>Catálogo {year}</span>
         </div>
         {logoUrl ? (
-          <img src={logoUrl} alt={brand?.name}            style={{ maxHeight:'80px', maxWidth:'240px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'20px' }} />
+          <img src={logoUrl} alt={brand?.name}            style={{ height:'80px', width:'auto', maxWidth:'240px', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'20px' }} />
         ) : (
           <div style={{ display:'flex', alignItems:'center', gap:'14px', marginBottom:'20px' }}>
             <div style={{
