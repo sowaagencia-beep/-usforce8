@@ -168,37 +168,53 @@ function PageShell({ children, bgColor = '#ffffff' }) {
 
 // ── Portada / Contra-portada ──────────────────────────────────────────────────
 
-function CoverPage({ entity, imgUrl, label, year }) {
+function CoverPage({ entity, imgUrl, logoUrl, label, year }) {
   const accent   = entity?.accent || '#1A4A8C';
   const initials = (entity?.name || '??').replace(/[^A-Z0-9]/gi,'').slice(0,2).toUpperCase();
+
+  // Imagem carregada → página inteira sem sobreposição
+  if (imgUrl) {
+    return (
+      <PageShell bgColor="#000">
+        <img src={imgUrl} alt={label} crossOrigin="anonymous"
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }} />
+      </PageShell>
+    );
+  }
+
+  // Design automático — logo substitui iniciais se disponível
   return (
     <PageShell bgColor="#0F1B3D">
-      {imgUrl
-        ? <img src={imgUrl} alt={label} crossOrigin="anonymous"
-            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
-        : <div style={{ position:'absolute', inset:0, background:`linear-gradient(135deg,${accent} 0%,#0F1B3D 65%)` }} />
-      }
-      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.38)' }} />
+      <div style={{ position:'absolute', inset:0, background:`linear-gradient(135deg,${accent} 0%,#0F1B3D 65%)` }} />
+      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.28)' }} />
 
       <div style={{ position:'relative', zIndex:1, flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px', textAlign:'center' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'18px', marginBottom:'28px' }}>
-          <div style={{
-            width:'68px', height:'68px', flexShrink:0,
-            background: imgUrl ? 'rgba(255,255,255,0.15)' : accent,
-            clipPath:'polygon(0 0,100% 0,100% 70%,85% 100%,0 100%)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:'26px', fontWeight:900, color:'#fff',
-            fontFamily:"'Barlow Condensed',sans-serif",
-          }}>{initials}</div>
-          <div style={{ textAlign:'left' }}>
-            <div style={{ fontSize:'48px', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.02em', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase' }}>
-              {entity?.name}
-            </div>
-            <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.6)', letterSpacing:'0.22em', textTransform:'uppercase', marginTop:'5px' }}>
-              {entity?.tagline}
+        {logoUrl ? (
+          <img src={logoUrl} alt={entity?.name} crossOrigin="anonymous"
+            style={{ maxHeight:'90px', maxWidth:'260px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'32px' }} />
+        ) : (
+          <div style={{ display:'flex', alignItems:'center', gap:'18px', marginBottom:'28px' }}>
+            <div style={{
+              width:'68px', height:'68px', flexShrink:0, background:accent,
+              clipPath:'polygon(0 0,100% 0,100% 70%,85% 100%,0 100%)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:'26px', fontWeight:900, color:'#fff', fontFamily:"'Barlow Condensed',sans-serif",
+            }}>{initials}</div>
+            <div style={{ textAlign:'left' }}>
+              <div style={{ fontSize:'48px', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.02em', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase' }}>
+                {entity?.name}
+              </div>
+              <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.6)', letterSpacing:'0.22em', textTransform:'uppercase', marginTop:'5px' }}>
+                {entity?.tagline}
+              </div>
             </div>
           </div>
-        </div>
+        )}
+        {logoUrl && (
+          <div style={{ fontSize:'32px', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.02em', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase', marginBottom:'16px' }}>
+            {entity?.name}
+          </div>
+        )}
         <div style={{ width:'72px', height:'3px', background:accent, marginBottom:'28px' }} />
         <div style={{ fontSize:'15px', fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:'0.28em', textTransform:'uppercase' }}>
           {label || 'Catálogo de Produtos'} · {year}
@@ -215,43 +231,57 @@ function CoverPage({ entity, imgUrl, label, year }) {
 
 // ── Separador de marca ────────────────────────────────────────────────────────
 
-function BrandPage({ parentEntity, brand, imgUrl, year }) {
+function BrandPage({ parentEntity, brand, imgUrl, logoUrl, year }) {
   const accent     = brand?.accent || parentEntity?.accent || '#1A4A8C';
   const brandInits = (brand?.name || '').replace(/[^A-Z0-9]/gi,'').slice(0,2).toUpperCase();
+
+  if (imgUrl) {
+    return (
+      <PageShell bgColor="#000">
+        <img src={imgUrl} alt={brand?.name} crossOrigin="anonymous"
+          style={{ position:'absolute', inset:0, width:'100%', height:'100%', display:'block' }} />
+      </PageShell>
+    );
+  }
+
   return (
     <PageShell bgColor="#0F1B3D">
-      {imgUrl
-        ? <img src={imgUrl} alt={brand?.name} crossOrigin="anonymous"
-            style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover' }} />
-        : <div style={{ position:'absolute', inset:0, background:`linear-gradient(150deg,${accent} 0%,#0F1B3D 70%)` }} />
-      }
-      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.42)' }} />
+      <div style={{ position:'absolute', inset:0, background:`linear-gradient(150deg,${accent} 0%,#0F1B3D 70%)` }} />
+      <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.32)' }} />
       <div style={{ position:'absolute', left:0, top:0, bottom:0, width:'5px', background:accent }} />
 
       <div style={{ position:'relative', zIndex:1, flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', padding:'60px', textAlign:'center' }}>
-        <div style={{ fontSize:'12px', fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:'0.3em', textTransform:'uppercase', marginBottom:'16px' }}>
+        <div style={{ fontSize:'12px', fontWeight:700, color:'rgba(255,255,255,0.5)', letterSpacing:'0.3em', textTransform:'uppercase', marginBottom:'24px' }}>
           {parentEntity?.name} · <span style={{ color:'rgba(255,255,255,0.7)' }}>Catálogo {year}</span>
         </div>
-        <div style={{ display:'flex', alignItems:'center', gap:'14px', marginBottom:'20px' }}>
-          <div style={{
-            width:'56px', height:'56px',
-            background: imgUrl ? 'rgba(255,255,255,0.15)' : accent,
-            clipPath:'polygon(0 0,100% 0,100% 70%,85% 100%,0 100%)',
-            display:'flex', alignItems:'center', justifyContent:'center',
-            fontSize:'22px', fontWeight:900, color:'#fff',
-            fontFamily:"'Barlow Condensed',sans-serif",
-          }}>{brandInits}</div>
-          <div style={{ textAlign:'left' }}>
-            <div style={{ fontSize:'56px', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.01em', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase' }}>
-              {brand?.name}
-            </div>
-            {brand?.tagline && (
-              <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.55)', letterSpacing:'0.2em', textTransform:'uppercase', marginTop:'4px' }}>
-                {brand.tagline}
+        {logoUrl ? (
+          <img src={logoUrl} alt={brand?.name} crossOrigin="anonymous"
+            style={{ maxHeight:'80px', maxWidth:'240px', width:'auto', height:'auto', display:'block', objectFit:'contain', filter:'brightness(0) invert(1)', marginBottom:'20px' }} />
+        ) : (
+          <div style={{ display:'flex', alignItems:'center', gap:'14px', marginBottom:'20px' }}>
+            <div style={{
+              width:'56px', height:'56px', background:accent,
+              clipPath:'polygon(0 0,100% 0,100% 70%,85% 100%,0 100%)',
+              display:'flex', alignItems:'center', justifyContent:'center',
+              fontSize:'22px', fontWeight:900, color:'#fff', fontFamily:"'Barlow Condensed',sans-serif",
+            }}>{brandInits}</div>
+            <div style={{ textAlign:'left' }}>
+              <div style={{ fontSize:'56px', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.01em', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase' }}>
+                {brand?.name}
               </div>
-            )}
+              {brand?.tagline && (
+                <div style={{ fontSize:'12px', fontWeight:600, color:'rgba(255,255,255,0.55)', letterSpacing:'0.2em', textTransform:'uppercase', marginTop:'4px' }}>
+                  {brand.tagline}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+        {logoUrl && (
+          <div style={{ fontSize:'48px', fontWeight:900, color:'#fff', lineHeight:1, letterSpacing:'0.01em', fontFamily:"'Barlow Condensed',sans-serif", textTransform:'uppercase', marginBottom:'12px' }}>
+            {brand?.name}
+          </div>
+        )}
         <div style={{ width:'60px', height:'3px', background:accent }} />
       </div>
 
@@ -590,13 +620,18 @@ function CatalogPreviewView({
                 }}>
                 <div ref={el => { pageRefs.current[i] = el; }}>
                   {page.type === 'cover' && (
-                    <CoverPage entity={entity} imgUrl={catalogConfig?.coverUrl} label="Catálogo de Produtos" year={year} />
+                    <CoverPage entity={entity} imgUrl={catalogConfig?.coverUrl}
+                      logoUrl={entityLogos?.[entitySlug] || null}
+                      label="Catálogo de Produtos" year={year} />
                   )}
                   {page.type === 'brand' && (() => {
                     const brandEnt = entityMap[page.brand?.slug];
+                    const bEnt = brandEnt || page.brand;
                     return (
-                      <BrandPage parentEntity={entity} brand={brandEnt || page.brand}
-                        imgUrl={categoryCoverUrls?.[`brand:${page.brand?.slug}`]} year={year} />
+                      <BrandPage parentEntity={entity} brand={bEnt}
+                        imgUrl={categoryCoverUrls?.[`brand:${page.brand?.slug}`]}
+                        logoUrl={entityLogos?.[bEnt?.slug] || null}
+                        year={year} />
                     );
                   })()}
                   {page.type === 'category' && (
@@ -617,7 +652,9 @@ function CatalogPreviewView({
                     />
                   )}
                   {page.type === 'backcover' && (
-                    <CoverPage entity={entity} imgUrl={backCoverUrl} label="Obrigado pela sua visita" year={year} />
+                    <CoverPage entity={entity} imgUrl={backCoverUrl}
+                      logoUrl={entityLogos?.[entitySlug] || null}
+                      label="Obrigado pela sua visita" year={year} />
                   )}
                 </div>
               </div>
