@@ -495,12 +495,60 @@ function CatalogPreviewView({
   const IcnP = ({ name, ...p }) => { const C = window.lucide[name]; return C ? <C {...p} /> : null; };
   const accent = entity?.accent || '#1A4A8C';
 
+  // Converte URLs externas (Dropbox) em data URLs via proxy do servidor.
+  // Necessário porque html2canvas + Dropbox falham por CORS no toDataURL().
+  const preloadImagesAsDataURLs = async (container) => {
+    const imgs = Array.from(container.querySelectorAll('img'));
+    const cache = new Map();
+    const originals = [];
+    await Promise.all(imgs.map(async (img) => {
+      const src = img.getAttribute('src');
+      if (!src || src.startsWith('data:')) return;
+      originals.push({ img, src });
+      try {
+        let dataUrl = cache.get(src);
+        if (!dataUrl) {
+          const proxyUrl = `/api/upload?proxy=${encodeURIComponent(src)}`;
+          const resp = await fetch(proxyUrl);
+          if (!resp.ok) throw new Error('proxy ' + resp.status);
+          const blob = await resp.blob();
+          dataUrl = await new Promise((resolve, reject) => {
+            const r = new FileReader();
+            r.onload = () => resolve(r.result);
+            r.onerror = reject;
+            r.readAsDataURL(blob);
+          });
+          cache.set(src, dataUrl);
+        }
+        img.setAttribute('src', dataUrl);
+        await new Promise((resolve) => {
+          if (img.complete && img.naturalWidth > 0) return resolve();
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        });
+      } catch (e) {
+        console.warn('proxy falhou para', src, e.message);
+      }
+    }));
+    return originals;
+  };
+
   const exportPDF = async () => {
     if (exporting) return;
     setExporting(true); setExportPct(0); setExportDone(false);
+    let restoreList = [];
     try {
       await document.fonts.ready;
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 300));
+
+      // Pre-carrega todas as imagens como data URL em todas as páginas
+      for (const el of pageRefs.current) {
+        if (!el) continue;
+        const restored = await preloadImagesAsDataURLs(el);
+        restoreList = restoreList.concat(restored);
+      }
+      await new Promise(r => setTimeout(r, 200));
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({ format:'a4', unit:'mm', orientation:'portrait', compress:true });
 
@@ -525,7 +573,11 @@ function CatalogPreviewView({
     } catch (err) {
       console.error('PDF error:', err);
       alert('Erro ao gerar PDF. Verifique as imagens e tente novamente.\n' + err.message);
-    } finally { setExporting(false); setExportPct(0); }
+    } finally {
+      // Restaura URLs originais (pra exibição continuar normal sem refazer fetch)
+      restoreList.forEach(({ img, src }) => { try { img.setAttribute('src', src); } catch {} });
+      setExporting(false); setExportPct(0);
+    }
   };
 
   return (

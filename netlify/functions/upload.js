@@ -122,6 +122,41 @@ exports.handler = async (event) => {
     }
   }
 
+  // ── GET ?proxy=URL: proxy de imagem (Dropbox → data URL) para PDF export ────
+  if (event.httpMethod === 'GET' && event.queryStringParameters?.proxy) {
+    try {
+      const target = decodeURIComponent(event.queryStringParameters.proxy);
+      if (!/^https:\/\/(dl\.dropboxusercontent\.com|www\.dropbox\.com|uc\.dropboxusercontent\.com)\//.test(target)) {
+        return { statusCode: 400, headers, body: JSON.stringify({ error: 'URL não permitida' }) };
+      }
+      const buf = await new Promise((resolve, reject) => {
+        const fetchUrl = (u, redirects = 0) => {
+          if (redirects > 5) return reject(new Error('Too many redirects'));
+          const uu = new URL(u);
+          https.get({ hostname: uu.hostname, path: uu.pathname + uu.search, headers: { 'User-Agent': 'usforce8/1.0' } }, (res) => {
+            if ([301,302,303,307,308].includes(res.statusCode) && res.headers.location) {
+              return fetchUrl(res.headers.location, redirects + 1);
+            }
+            if (res.statusCode !== 200) return reject(new Error('HTTP ' + res.statusCode));
+            const chunks = [];
+            res.on('data', c => chunks.push(c));
+            res.on('end', () => resolve({ buf: Buffer.concat(chunks), ct: res.headers['content-type'] || 'image/jpeg' }));
+          }).on('error', reject);
+        };
+        fetchUrl(target);
+      });
+      return {
+        statusCode: 200,
+        headers: { ...headers, 'Content-Type': buf.ct, 'Cache-Control': 'public, max-age=3600' },
+        body: buf.buf.toString('base64'),
+        isBase64Encoded: true,
+      };
+    } catch (err) {
+      console.error('[proxy]', err.message);
+      return { statusCode: 500, headers, body: JSON.stringify({ error: err.message }) };
+    }
+  }
+
   // ── GET: lista arquivos numa pasta (para cleanup) ────────────────────────────
   if (event.httpMethod === 'GET') {
     try {

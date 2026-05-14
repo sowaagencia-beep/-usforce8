@@ -161,6 +161,27 @@ app.delete('/api/upload', async (req, res) => {
   }
 });
 
+// ── GET /api/upload?proxy=URL — proxy de imagem (para PDF export) ────────────
+
+app.get('/api/upload', async (req, res, next) => {
+  const proxyUrl = req.query.proxy;
+  if (!proxyUrl) return next();
+  try {
+    if (!/^https:\/\/(dl\.dropboxusercontent\.com|www\.dropbox\.com|uc\.dropboxusercontent\.com)\//.test(proxyUrl)) {
+      return res.status(400).json({ error: 'URL não permitida' });
+    }
+    const upstream = await fetch(proxyUrl, { redirect: 'follow' });
+    if (!upstream.ok) return res.status(upstream.status).json({ error: 'Upstream ' + upstream.status });
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    const buf = Buffer.from(await upstream.arrayBuffer());
+    res.send(buf);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── GET /api/upload?folder=... — lista arquivos para cleanup ─────────────────
 
 app.get('/api/upload', async (req, res) => {
