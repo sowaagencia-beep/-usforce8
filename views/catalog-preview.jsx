@@ -343,20 +343,20 @@ function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl }) 
     <PageShell>
       {/* Header */}
       <div style={{ height:`${HDR_H}px`, background:'#fff', borderBottom:'2px solid #F0F2F8', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 26px', flexShrink:0 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:'10px' }}>
-          {logoUrl ? (
-            <img src={logoUrl} alt={entity?.name} crossOrigin="anonymous"
-              style={{ height:'30px', maxWidth:'72px', objectFit:'contain' }} />
-          ) : (
-            <div style={{
-              width:'30px', height:'30px', flexShrink:0,
-              background:accent,
-              clipPath:'polygon(0 0,100% 0,100% 70%,80% 100%,0 100%)',
-              display:'flex', alignItems:'center', justifyContent:'center',
-              fontSize:'12px', fontWeight:900, color:'#fff',
-              fontFamily:"'Barlow Condensed',sans-serif",
-            }}>{(entity?.name||'').slice(0,2).toUpperCase()}</div>
-          )}
+        {logoUrl ? (
+          <img src={logoUrl} alt={entity?.name} crossOrigin="anonymous"
+            onError={(e)=>{ e.currentTarget.style.display='none'; const fb=e.currentTarget.nextElementSibling; if(fb) fb.style.display='flex'; }}
+            style={{ height:'38px', maxWidth:'180px', width:'auto', objectFit:'contain', display:'block' }} />
+        ) : null}
+        <div style={{ display: logoUrl ? 'none' : 'flex', alignItems:'center', gap:'10px' }}>
+          <div style={{
+            width:'30px', height:'30px', flexShrink:0,
+            background:accent,
+            clipPath:'polygon(0 0,100% 0,100% 70%,80% 100%,0 100%)',
+            display:'flex', alignItems:'center', justifyContent:'center',
+            fontSize:'12px', fontWeight:900, color:'#fff',
+            fontFamily:"'Barlow Condensed',sans-serif",
+          }}>{(entity?.name||'').slice(0,2).toUpperCase()}</div>
           <div>
             <div style={{ fontSize:'13px', fontWeight:900, textTransform:'uppercase', letterSpacing:'0.04em', color:'#0F1B3D', lineHeight:1, fontFamily:"'Barlow Condensed',sans-serif" }}>{entity?.name}</div>
             <div style={{ fontSize:'9px', fontWeight:600, textTransform:'uppercase', letterSpacing:'0.2em', color:'rgba(15,27,61,0.42)', marginTop:'2px' }}>{entity?.tagline}</div>

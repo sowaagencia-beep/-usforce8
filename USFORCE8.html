@@ -122,14 +122,19 @@
       brand:   (b, companySlug) => ({ slug: b.slug, name: b.name, tagline: b.tagline, accent: b.accent, company_slug: companySlug }),
     };
 
+    // ── localStorage helpers ──────────────────────────────────────────────────
+    const LS_KEYS = { configs: 'uf8_catalog_configs', covers: 'uf8_category_covers', logos: 'uf8_entity_logos' };
+    const lsGet = (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } };
+    const lsSet = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
+
     function App() {
       const [products,          setProducts]          = useState(window.USFORCE_DATA.PRODUCTS);
       const [holdings,          setHoldings]          = useState(window.USFORCE_DATA.HOLDINGS);
       const [categories,        setCategories]        = useState(window.USFORCE_DATA.CATEGORIES);
       const [heroImages,        setHeroImages]        = useState(window.USFORCE_DATA.HERO_IMAGES);
-      const [catalogConfigs,    setCatalogConfigs]    = useState({});
-      const [categoryCoverUrls, setCategoryCoverUrls] = useState({});
-      const [entityLogos,       setEntityLogos]       = useState({});
+      const [catalogConfigs,    setCatalogConfigs]    = useState(() => lsGet(LS_KEYS.configs) || {});
+      const [categoryCoverUrls, setCategoryCoverUrls] = useState(() => lsGet(LS_KEYS.covers)  || {});
+      const [entityLogos,       setEntityLogos]       = useState(() => lsGet(LS_KEYS.logos)   || {});
       const [dbReady,           setDbReady]           = useState(!sb);
 
       // ── Carrega dados do Supabase na inicialização ──────────────────────────
@@ -191,7 +196,7 @@
                   layout:             c.layout || null,
                 };
               });
-              setCatalogConfigs(map);
+              setCatalogConfigs(prev => { const n = { ...prev, ...map }; lsSet(LS_KEYS.configs, n); return n; });
             }
             if (catCovs?.length) {
               const map = {};
@@ -199,12 +204,12 @@
                 if (!map[c.entity_slug]) map[c.entity_slug] = {};
                 map[c.entity_slug][c.category_name] = c.cover_url;
               });
-              setCategoryCoverUrls(map);
+              setCategoryCoverUrls(prev => { const n = { ...prev, ...map }; lsSet(LS_KEYS.covers, n); return n; });
             }
             if (entLogos?.length) {
               const map = {};
               entLogos.forEach(l => { map[l.entity_slug] = l.logo_url; });
-              setEntityLogos(map);
+              setEntityLogos(prev => { const n = { ...prev, ...map }; lsSet(LS_KEYS.logos, n); return n; });
             }
           } catch (e) {
             console.warn('Supabase: usando dados locais.', e.message);
@@ -384,8 +389,8 @@
       };
 
       const handleSaveCatalogConfig = async (slug, config, catCovers) => {
-        setCatalogConfigs(m => ({ ...m, [slug]: { ...(m[slug] || {}), ...config } }));
-        setCategoryCoverUrls(m => ({ ...m, [slug]: catCovers }));
+        setCatalogConfigs(m => { const n = { ...m, [slug]: { ...(m[slug] || {}), ...config } }; lsSet(LS_KEYS.configs, n); return n; });
+        setCategoryCoverUrls(m => { const n = { ...m, [slug]: catCovers }; lsSet(LS_KEYS.covers, n); return n; });
         if (sb) {
           await sb.from('catalog_configs').upsert({
             entity_slug:          slug,
@@ -403,7 +408,7 @@
       };
 
       const handleSaveCatalogLayout = async (slug, layout) => {
-        setCatalogConfigs(m => ({ ...m, [slug]: { ...(m[slug] || {}), layout } }));
+        setCatalogConfigs(m => { const n = { ...m, [slug]: { ...(m[slug] || {}), layout } }; lsSet(LS_KEYS.configs, n); return n; });
         if (sb) {
           const { error } = await sb.from('catalog_configs').upsert({
             entity_slug: slug,
@@ -416,7 +421,7 @@
       };
 
       const handleSaveEntityLogo = async (slug, logoUrl) => {
-        setEntityLogos(m => ({ ...m, [slug]: logoUrl }));
+        setEntityLogos(m => { const n = { ...m, [slug]: logoUrl }; lsSet(LS_KEYS.logos, n); return n; });
         if (sb) {
           const { error } = await sb.from('entity_logos').upsert({
             entity_slug: slug,

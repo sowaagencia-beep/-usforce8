@@ -47,10 +47,25 @@ function CatalogAdminView({
     r.readAsDataURL(file);
   });
 
-  const uploadFile = async (file, type) => {
+  const deleteOldFile = async (oldUrl) => {
+    if (!oldUrl) return;
+    try {
+      // Extract Dropbox path from URL — works for both direct and shared links
+      const match = oldUrl.match(/\/USFORCE8\/[^?#]+/);
+      if (!match) return;
+      await fetch(UPLOAD_URL, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: match[0] }),
+      });
+    } catch { /* silent — old file cleanup is best-effort */ }
+  };
+
+  const uploadFile = async (file, type, oldUrl) => {
     setUploading(type);
     setUploadErr(null);
     try {
+      if (oldUrl) await deleteOldFile(oldUrl);
       const base64 = await toBase64(file);
       const resp = await fetch(UPLOAD_URL, {
         method:  'POST',
@@ -65,13 +80,14 @@ function CatalogAdminView({
     finally { setUploading(null); }
   };
 
-  const handleCoverFile   = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'cover');     if (u) setCoverUrl(u); };
-  const handleBackFile    = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'backcover'); if (u) setBackCoverUrl(u); };
-  const handleCatFile     = async (e, cat) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f, cat);  if (u) setCatCovers(c => ({ ...c, [cat]: u })); };
+  const handleCoverFile   = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'cover',    coverUrl);     if (u) setCoverUrl(u); };
+  const handleBackFile    = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'backcover', backCoverUrl); if (u) setBackCoverUrl(u); };
+  const handleCatFile     = async (e, cat) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f, cat, catCovers[cat]); if (u) setCatCovers(c => ({ ...c, [cat]: u })); };
 
   const handleLogoFile = async (e, slug) => {
     const f = e.target.files?.[0]; if (!f) return; e.target.value='';
-    const u = await uploadFile(f, `logo-${slug}`);
+    const currentLogo = entityLogos?.[slug] || null;
+    const u = await uploadFile(f, `logo-${slug}`, currentLogo);
     if (u && onSaveLogo) onSaveLogo(slug, u);
   };
 
