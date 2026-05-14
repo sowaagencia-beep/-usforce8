@@ -344,7 +344,7 @@ function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl }) 
         <div style={{ width:`${LEFT_W}px`, height:`${BODY_H}px`, background:'#FAFBFD', flexShrink:0, overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center' }}>
           {imgUrl
             ? <img src={imgUrl} alt={product.name} crossOrigin="anonymous"
-                style={{ width:'100%', height:'100%', objectFit:'contain', display:'block' }} />
+                style={{ width:'auto', height:'auto', maxWidth:'100%', maxHeight:'100%', display:'block', objectFit:'contain' }} />
             : (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12px', color:'rgba(15,27,61,0.18)' }}>
                 <svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
