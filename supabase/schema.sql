@@ -92,10 +92,12 @@ ALTER TABLE products        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE catalog_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE category_covers ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "public_all" ON holdings        FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON companies       FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON brands          FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON categories      FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON products        FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON catalog_configs FOR ALL USING (true) WITH CHECK (true);
-CREATE POLICY "public_all" ON category_covers FOR ALL USING (true) WITH CHECK (true);
+DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='holdings'        AND policyname='public_all') THEN CREATE POLICY "public_all" ON holdings        FOR ALL USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='companies'       AND policyname='public_all') THEN CREATE POLICY "public_all" ON companies       FOR ALL USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='brands'          AND policyname='public_all') THEN CREATE POLICY "public_all" ON brands          FOR ALL USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='categories'      AND policyname='public_all') THEN CREATE POLICY "public_all" ON categories      FOR ALL USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='products'        AND policyname='public_all') THEN CREATE POLICY "public_all" ON products        FOR ALL USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='catalog_configs' AND policyname='public_all') THEN CREATE POLICY "public_all" ON catalog_configs FOR ALL USING (true) WITH CHECK (true); END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='category_covers' AND policyname='public_all') THEN CREATE POLICY "public_all" ON category_covers FOR ALL USING (true) WITH CHECK (true); END IF;
+END $$;
