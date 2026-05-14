@@ -4,7 +4,7 @@ const { useState: useStateForm, useMemo: useMemoForm, useRef: useRefForm } = Rea
 
 function I({ name, ...p }) { const C = window.lucide[name]; return C ? <C {...p} /> : null; }
 
-function ProductFormView({ initialProduct, holdings, categories, onCancel, onSave, onLogout, onAddCategory, onDeleteCategory }) {
+function ProductFormView({ initialProduct, holdings, categories, categoryColors, onCancel, onSave, onLogout, onAddCategory, onDeleteCategory, onSetCategoryColor }) {
   const { buildEntityMap, getAllEntities } = window.USFORCE_DATA;
 
   // Build entity map once
@@ -241,10 +241,12 @@ function ProductFormView({ initialProduct, holdings, categories, onCancel, onSav
                     ) : (
                       <CategoryManager
                         categories={availableCategories}
+                        colors={categoryColors?.[form.companySlug] || {}}
                         selected={form.category}
                         onSelect={v => set('category', v)}
                         onAdd={name => onAddCategory(form.companySlug, name)}
                         onDelete={name => { onDeleteCategory(form.companySlug, name); if (form.category === name) set('category', ''); }}
+                        onSetColor={(name, color) => onSetCategoryColor && onSetCategoryColor(form.companySlug, name, color)}
                       />
                     )}
                   </Field>
@@ -535,9 +537,10 @@ function SelectInput({ value, onChange, children, disabled }) {
   );
 }
 
-function CategoryManager({ categories, selected, onSelect, onAdd, onDelete }) {
+function CategoryManager({ categories, colors = {}, selected, onSelect, onAdd, onDelete, onSetColor }) {
   const [newCat,      setNewCat]      = useStateForm('');
   const [delConfirm,  setDelConfirm]  = useStateForm(null);
+  const colorRefs = React.useRef({});
 
   const handleAdd = () => {
     const name = newCat.trim();
@@ -561,26 +564,48 @@ function CategoryManager({ categories, selected, onSelect, onAdd, onDelete }) {
       {/* Chips existentes */}
       {categories.length > 0 ? (
         <div className="flex flex-wrap gap-2">
-          {categories.map(cat => (
-            <div key={cat}
-              className={`group inline-flex items-center text-[11px] font-bold uppercase tracking-[0.14em] border transition-colors
-                ${selected === cat
-                  ? 'bg-[#0F1B3D] text-white border-[#0F1B3D]'
-                  : 'bg-[#F4F6FB] text-[#0F1B3D] border-[#0F1B3D]/20 hover:border-[#0F1B3D]/50'}`}>
-              <button type="button" onClick={() => onSelect(cat)} className="px-3 py-1.5">
-                {cat}
-              </button>
-              <button type="button" onClick={() => handleDelete(cat)}
-                className={`pr-2.5 pl-1 py-1.5 transition-colors
-                  ${delConfirm === cat
-                    ? 'text-red-500 opacity-100'
-                    : selected === cat
-                      ? 'opacity-40 hover:opacity-100'
-                      : 'opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-500'}`}>
-                <I name={delConfirm === cat ? 'Trash2' : 'X'} size={10} />
-              </button>
-            </div>
-          ))}
+          {categories.map(cat => {
+            const catColor = colors[cat] || null;
+            return (
+              <div key={cat}
+                className={`group inline-flex items-center text-[11px] font-bold uppercase tracking-[0.14em] border transition-colors
+                  ${selected === cat
+                    ? 'bg-[#0F1B3D] text-white border-[#0F1B3D]'
+                    : 'bg-[#F4F6FB] text-[#0F1B3D] border-[#0F1B3D]/20 hover:border-[#0F1B3D]/50'}`}>
+                {onSetColor && (
+                  <>
+                    <input ref={el => { colorRefs.current[cat] = el; }} type="color" className="sr-only"
+                      defaultValue={catColor || '#1A4A8C'}
+                      onChange={e => onSetColor(cat, e.target.value)} />
+                    <button type="button" title="Cor da categoria"
+                      onClick={(e) => { e.stopPropagation(); colorRefs.current[cat]?.click(); }}
+                      className="pl-2 py-1.5 flex items-center">
+                      <span className="h-3 w-3 rounded-full border border-current/30"
+                            style={{ background: catColor || 'transparent', borderColor: catColor ? 'rgba(0,0,0,0.2)' : 'currentColor' }} />
+                    </button>
+                  </>
+                )}
+                <button type="button" onClick={() => onSelect(cat)} className="px-3 py-1.5">
+                  {cat}
+                </button>
+                {catColor && onSetColor && (
+                  <button type="button" title="Remover cor" onClick={(e) => { e.stopPropagation(); onSetColor(cat, null); }}
+                    className="pr-1 pl-0.5 py-1.5 opacity-0 group-hover:opacity-40 hover:!opacity-100">
+                    <I name="Paintbrush" size={10} />
+                  </button>
+                )}
+                <button type="button" onClick={() => handleDelete(cat)}
+                  className={`pr-2.5 pl-1 py-1.5 transition-colors
+                    ${delConfirm === cat
+                      ? 'text-red-500 opacity-100'
+                      : selected === cat
+                        ? 'opacity-40 hover:opacity-100'
+                        : 'opacity-0 group-hover:opacity-50 hover:!opacity-100 hover:text-red-500'}`}>
+                  <I name={delConfirm === cat ? 'Trash2' : 'X'} size={10} />
+                </button>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <p className="text-xs text-[#0F1B3D]/40 italic">Nenhuma categoria ainda — crie a primeira abaixo.</p>

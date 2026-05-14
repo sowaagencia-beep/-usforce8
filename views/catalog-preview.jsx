@@ -291,8 +291,8 @@ function BrandPage({ parentEntity, brand, imgUrl, logoUrl, year }) {
 
 // ── Separador de categoria ────────────────────────────────────────────────────
 
-function CategoryPage({ entity, catName, imgUrl }) {
-  const accent = entity?.accent || '#1A4A8C';
+function CategoryPage({ entity, catName, imgUrl, accent: accentProp }) {
+  const accent = accentProp || entity?.accent || '#1A4A8C';
   return (
     <PageShell bgColor="#0F1B3D">
       {imgUrl
@@ -322,9 +322,9 @@ function CategoryPage({ entity, catName, imgUrl }) {
 
 // ── Página de produto — layout dinâmico ───────────────────────────────────────
 
-function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl }) {
+function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl, accent: accentProp }) {
   const resolvedLayout = (layout && layout.rightCol) ? layout : DEFAULT_LAYOUT;
-  const accent  = entity?.accent || '#1A4A8C';
+  const accent  = accentProp || entity?.accent || '#1A4A8C';
   const imgUrl  = product.images?.[0] || '';
   const leftPct = Math.max(20, Math.min(70, resolvedLayout.leftWidthPct || 47));
   const LEFT_W  = Math.round(A4W * (leftPct / 100));
@@ -408,6 +408,7 @@ function ProductPage({ entity, product, pageNum, totalPages, layout, logoUrl }) 
 
 function CatalogPreviewView({
   entitySlug, entity, products, holdings, categories,
+  categoryColors,
   catalogConfig, categoryCoverUrls, entityLogos,
   fromAdmin, onBack, onGoAdmin,
 }) {
@@ -679,23 +680,32 @@ function CatalogPreviewView({
                         year={year} />
                     );
                   })()}
-                  {page.type === 'category' && (
-                    <CategoryPage
-                      entity={page.brandSlug ? (entityMap[page.brandSlug] || entity) : entity}
-                      catName={page.catName}
-                      imgUrl={categoryCoverUrls?.[page.catName]}
-                    />
-                  )}
-                  {page.type === 'product' && (
-                    <ProductPage
-                      entity={productEntity}
-                      product={page.product}
-                      pageNum={pNum}
-                      totalPages={productPages.length}
-                      layout={layout}
-                      logoUrl={pageLogoUrl}
-                    />
-                  )}
+                  {page.type === 'category' && (() => {
+                    const catEnt = page.brandSlug ? (entityMap[page.brandSlug] || entity) : entity;
+                    const catColor = categoryColors?.[catEnt?.slug]?.[page.catName] || null;
+                    return (
+                      <CategoryPage
+                        entity={catEnt}
+                        catName={page.catName}
+                        imgUrl={categoryCoverUrls?.[page.catName]}
+                        accent={catColor}
+                      />
+                    );
+                  })()}
+                  {page.type === 'product' && (() => {
+                    const prodCatColor = categoryColors?.[page.product?.companySlug]?.[page.product?.category] || null;
+                    return (
+                      <ProductPage
+                        entity={productEntity}
+                        product={page.product}
+                        pageNum={pNum}
+                        totalPages={productPages.length}
+                        layout={layout}
+                        logoUrl={pageLogoUrl}
+                        accent={prodCatColor}
+                      />
+                    );
+                  })()}
                   {page.type === 'backcover' && (
                     <CoverPage entity={entity} imgUrl={backCoverUrl}
                       logoUrl={entityLogos?.[entitySlug] || null}

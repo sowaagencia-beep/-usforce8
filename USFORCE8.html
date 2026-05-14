@@ -123,7 +123,7 @@
     };
 
     // ── localStorage helpers ──────────────────────────────────────────────────
-    const LS_KEYS = { configs: 'uf8_catalog_configs', covers: 'uf8_category_covers', logos: 'uf8_entity_logos' };
+    const LS_KEYS = { configs: 'uf8_catalog_configs', covers: 'uf8_category_covers', logos: 'uf8_entity_logos', catColors: 'uf8_category_colors' };
     const lsGet = (key) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; } catch { return null; } };
     const lsSet = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} };
 
@@ -135,6 +135,7 @@
       const [catalogConfigs,    setCatalogConfigs]    = useState(() => lsGet(LS_KEYS.configs) || {});
       const [categoryCoverUrls, setCategoryCoverUrls] = useState(() => lsGet(LS_KEYS.covers)  || {});
       const [entityLogos,       setEntityLogos]       = useState(() => lsGet(LS_KEYS.logos)   || {});
+      const [categoryColors,    setCategoryColors]    = useState(() => lsGet(LS_KEYS.catColors) || {});
       const [dbReady,           setDbReady]           = useState(!sb);
 
       // ── Carrega dados do Supabase na inicialização ──────────────────────────
@@ -181,8 +182,13 @@
 
             if (cats?.length) {
               const map = {};
-              cats.forEach(c => { (map[c.entity_slug] = map[c.entity_slug] || []).push(c.name); });
+              const colorMap = {};
+              cats.forEach(c => {
+                (map[c.entity_slug] = map[c.entity_slug] || []).push(c.name);
+                if (c.accent) { (colorMap[c.entity_slug] = colorMap[c.entity_slug] || {})[c.name] = c.accent; }
+              });
               setCategories(map);
+              setCategoryColors(prev => { const n = { ...prev, ...colorMap }; lsSet(LS_KEYS.catColors, n); return n; });
             }
             if (catCfgs?.length) {
               const map = {};
@@ -453,6 +459,18 @@
         toast(logoUrl ? 'Logo salvo com sucesso' : 'Logo removido');
       };
 
+      const handleSetCategoryColor = async (slug, name, accent) => {
+        setCategoryColors(m => {
+          const n = { ...m, [slug]: { ...(m[slug] || {}), [name]: accent || null } };
+          if (!accent) delete n[slug][name];
+          lsSet(LS_KEYS.catColors, n); return n;
+        });
+        if (sb) {
+          const { error } = await sb.from('categories').update({ accent: accent || null }).eq('entity_slug', slug).eq('name', name);
+          if (error) console.error('Supabase set category color:', error.message);
+        }
+      };
+
       const handleDeleteCategory = async (slug, name) => {
         setCategories(c => ({ ...c, [slug]: (c[slug] || []).filter(n => n !== name) }));
         if (sb) {
@@ -510,10 +528,12 @@
             <ProductFormView
               initialProduct={state.editingProduct}
               holdings={holdings} categories={categories}
+              categoryColors={categoryColors}
               onCancel={() => navigate({ view: 'admin-dashboard', editingProduct: null })}
               onSave={handleSaveProduct} onLogout={handleLogout}
               onAddCategory={handleAddCategory}
               onDeleteCategory={handleDeleteCategory}
+              onSetCategoryColor={handleSetCategoryColor}
             />
           )}
 
@@ -564,6 +584,7 @@
                 products={products}
                 holdings={holdings}
                 categories={categories}
+                categoryColors={categoryColors}
                 catalogConfig={catalogConfigs[state.selectedCompanySlug] || {}}
                 categoryCoverUrls={categoryCoverUrls[state.selectedCompanySlug] || {}}
                 entityLogos={entityLogos}
