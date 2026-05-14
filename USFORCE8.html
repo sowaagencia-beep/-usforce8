@@ -89,6 +89,7 @@
   <script type="text/babel" src="views/product-detail.jsx"></script>
   <script type="text/babel" src="views/catalog-admin.jsx"></script>
   <script type="text/babel" src="views/catalog-preview.jsx"></script>
+  <script type="text/babel" src="views/layout-editor.jsx"></script>
 
   <script type="text/babel">
     const { useState, useEffect } = React;
@@ -128,6 +129,7 @@
       const [heroImages,        setHeroImages]        = useState(window.USFORCE_DATA.HERO_IMAGES);
       const [catalogConfigs,    setCatalogConfigs]    = useState({});
       const [categoryCoverUrls, setCategoryCoverUrls] = useState({});
+      const [entityLogos,       setEntityLogos]       = useState({});
       const [dbReady,           setDbReady]           = useState(!sb);
 
       // ── Carrega dados do Supabase na inicialização ──────────────────────────
@@ -143,6 +145,7 @@
               { data: cats     },
               { data: catCfgs  },
               { data: catCovs  },
+              { data: entLogos },
             ] = await Promise.all([
               sb.from('products').select('*').order('created_at', { ascending: false }),
               sb.from('holdings').select('*'),
@@ -151,6 +154,7 @@
               sb.from('categories').select('*'),
               sb.from('catalog_configs').select('*'),
               sb.from('category_covers').select('*'),
+              sb.from('entity_logos').select('*'),
             ]);
 
             if (prods?.length)  setProducts(prods.map(fromDb.product));
@@ -184,6 +188,7 @@
                   template:           c.template,
                   showCategoryCovers: c.show_category_covers ?? true,
                   showBrandDividers:  c.show_brand_dividers  ?? true,
+                  layout:             c.layout || null,
                 };
               });
               setCatalogConfigs(map);
@@ -195,6 +200,11 @@
                 map[c.entity_slug][c.category_name] = c.cover_url;
               });
               setCategoryCoverUrls(map);
+            }
+            if (entLogos?.length) {
+              const map = {};
+              entLogos.forEach(l => { map[l.entity_slug] = l.logo_url; });
+              setEntityLogos(map);
             }
           } catch (e) {
             console.warn('Supabase: usando dados locais.', e.message);
@@ -345,7 +355,7 @@
       };
 
       const handleSaveCatalogConfig = async (slug, config, catCovers) => {
-        setCatalogConfigs(m => ({ ...m, [slug]: config }));
+        setCatalogConfigs(m => ({ ...m, [slug]: { ...(m[slug] || {}), ...config } }));
         setCategoryCoverUrls(m => ({ ...m, [slug]: catCovers }));
         if (sb) {
           await sb.from('catalog_configs').upsert({
@@ -361,6 +371,32 @@
           if (rows.length) await sb.from('category_covers').upsert(rows, { onConflict: 'entity_slug,category_name' });
         }
         toast('Catálogo salvo com sucesso');
+      };
+
+      const handleSaveCatalogLayout = async (slug, layout) => {
+        setCatalogConfigs(m => ({ ...m, [slug]: { ...(m[slug] || {}), layout } }));
+        if (sb) {
+          const { error } = await sb.from('catalog_configs').upsert({
+            entity_slug: slug,
+            layout:      layout,
+            updated_at:  new Date().toISOString(),
+          });
+          if (error) console.error('Supabase save layout:', error.message);
+        }
+        toast('Layout salvo com sucesso');
+      };
+
+      const handleSaveEntityLogo = async (slug, logoUrl) => {
+        setEntityLogos(m => ({ ...m, [slug]: logoUrl }));
+        if (sb) {
+          const { error } = await sb.from('entity_logos').upsert({
+            entity_slug: slug,
+            logo_url:    logoUrl || null,
+            updated_at:  new Date().toISOString(),
+          });
+          if (error) console.error('Supabase save logo:', error.message);
+        }
+        toast(logoUrl ? 'Logo salvo com sucesso' : 'Logo removido');
       };
 
       const handleDeleteCategory = async (slug, name) => {
@@ -451,8 +487,11 @@
                 categories={categories}
                 catalogConfig={catalogConfigs[state.selectedCompanySlug]}
                 categoryCoverUrls={categoryCoverUrls[state.selectedCompanySlug] || {}}
+                entityLogos={entityLogos}
                 onSave={handleSaveCatalogConfig}
+                onSaveLogo={handleSaveEntityLogo}
                 onPreview={() => navigate({ view: 'catalog-preview' })}
+                onEditLayout={() => navigate({ view: 'layout-editor' })}
                 onBack={() => navigate({ view: 'admin-dashboard' })}
               />
             );
@@ -471,9 +510,29 @@
                 categories={categories}
                 catalogConfig={catalogConfigs[state.selectedCompanySlug] || {}}
                 categoryCoverUrls={categoryCoverUrls[state.selectedCompanySlug] || {}}
+                entityLogos={entityLogos}
                 fromAdmin={state.isAuthenticated}
                 onBack={() => navigate({ view: state.isAuthenticated ? 'admin-dashboard' : 'public-showcase' })}
                 onGoAdmin={state.isAuthenticated ? () => navigate({ view: 'catalog-admin' }) : null}
+              />
+            );
+          })()}
+
+          {state.view === 'layout-editor' && state.selectedCompanySlug && (() => {
+            const { buildEntityMap } = window.USFORCE_DATA;
+            const em = buildEntityMap(holdings);
+            const ent = em[state.selectedCompanySlug];
+            return (
+              <LayoutEditorView
+                entitySlug={state.selectedCompanySlug}
+                entity={ent}
+                holdings={holdings}
+                products={products}
+                categories={categories}
+                catalogConfig={catalogConfigs[state.selectedCompanySlug] || {}}
+                entityLogos={entityLogos}
+                onSave={handleSaveCatalogLayout}
+                onBack={() => navigate({ view: 'catalog-admin' })}
               />
             );
           })()}

@@ -78,6 +78,16 @@ CREATE TABLE IF NOT EXISTS catalog_configs (
 ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS back_cover_url       text;
 ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS show_category_covers boolean DEFAULT true;
 ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS show_brand_dividers  boolean DEFAULT true;
+ALTER TABLE catalog_configs ADD COLUMN IF NOT EXISTS layout               jsonb;
+
+-- ── Logotipos das Entidades ──────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS entity_logos (
+  entity_slug text PRIMARY KEY,
+  logo_url    text,
+  updated_at  timestamptz DEFAULT now()
+);
+ALTER TABLE entity_logos ADD COLUMN IF NOT EXISTS logo_url   text;
+ALTER TABLE entity_logos ADD COLUMN IF NOT EXISTS updated_at timestamptz DEFAULT now();
 
 -- ── Portadas de Categorias ────────────────────────────────────────────────────
 -- Imagem separadora por categoria dentro de um catálogo
@@ -99,6 +109,7 @@ ALTER TABLE catalog_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE category_covers ENABLE ROW LEVEL SECURITY;
 
 DO $$ BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='entity_logos'    AND policyname='public_all') THEN ALTER TABLE entity_logos ENABLE ROW LEVEL SECURITY; CREATE POLICY "public_all" ON entity_logos    FOR ALL USING (true) WITH CHECK (true); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='holdings'        AND policyname='public_all') THEN CREATE POLICY "public_all" ON holdings        FOR ALL USING (true) WITH CHECK (true); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='companies'       AND policyname='public_all') THEN CREATE POLICY "public_all" ON companies       FOR ALL USING (true) WITH CHECK (true); END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='brands'          AND policyname='public_all') THEN CREATE POLICY "public_all" ON brands          FOR ALL USING (true) WITH CHECK (true); END IF;

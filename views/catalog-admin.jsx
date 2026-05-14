@@ -3,12 +3,11 @@ const { useState: useStateCatAdm, useRef: useRefCatAdm, useMemo: useMemoCA } = R
 
 function CatalogAdminView({
   entitySlug, entity, holdings, categories,
-  catalogConfig, categoryCoverUrls,
-  onSave, onPreview, onBack,
+  catalogConfig, categoryCoverUrls, entityLogos,
+  onSave, onSaveLogo, onPreview, onEditLayout, onBack,
 }) {
   const { getSlugsUnder } = window.USFORCE_DATA;
 
-  // Detect if this entity is a parent company that owns brands
   const brandList = useMemoCA(() => {
     for (const h of holdings) {
       for (const c of h.companies) {
@@ -19,7 +18,6 @@ function CatalogAdminView({
   }, [entitySlug, holdings]);
   const isParentCompany = brandList.length > 0;
 
-  // All categories relevant to this entity (own + all brands)
   const allCats = useMemoCA(() => {
     const slugs = getSlugsUnder(entitySlug, holdings);
     const out = [];
@@ -27,15 +25,15 @@ function CatalogAdminView({
     return out;
   }, [entitySlug, holdings, categories]);
 
-  // Form state
-  const [coverUrl,            setCoverUrl]            = useStateCatAdm(catalogConfig?.coverUrl || '');
-  const [backCoverUrl,        setBackCoverUrl]        = useStateCatAdm(catalogConfig?.backCoverUrl || '');
-  const [catCovers,           setCatCovers]           = useStateCatAdm(categoryCoverUrls || {});
-  const [showCategoryCovers,  setShowCategoryCovers]  = useStateCatAdm(catalogConfig?.showCategoryCovers ?? true);
-  const [showBrandDividers,   setShowBrandDividers]   = useStateCatAdm(catalogConfig?.showBrandDividers ?? true);
-  const [uploading,           setUploading]           = useStateCatAdm(null);
-  const [uploadErr,           setUploadErr]           = useStateCatAdm(null);
-  const [saved,               setSaved]               = useStateCatAdm(false);
+  // Catalog config state
+  const [coverUrl,           setCoverUrl]           = useStateCatAdm(catalogConfig?.coverUrl || '');
+  const [backCoverUrl,       setBackCoverUrl]        = useStateCatAdm(catalogConfig?.backCoverUrl || '');
+  const [catCovers,          setCatCovers]           = useStateCatAdm(categoryCoverUrls || {});
+  const [showCategoryCovers, setShowCategoryCovers]  = useStateCatAdm(catalogConfig?.showCategoryCovers ?? true);
+  const [showBrandDividers,  setShowBrandDividers]   = useStateCatAdm(catalogConfig?.showBrandDividers ?? true);
+  const [uploading,          setUploading]           = useStateCatAdm(null);
+  const [uploadErr,          setUploadErr]           = useStateCatAdm(null);
+  const [saved,              setSaved]               = useStateCatAdm(false);
 
   const coverRef     = useRefCatAdm(null);
   const backCoverRef = useRefCatAdm(null);
@@ -67,19 +65,24 @@ function CatalogAdminView({
     finally { setUploading(null); }
   };
 
-  const handleCoverFile    = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; const u = await uploadFile(f, 'cover');     if (u) setCoverUrl(u); };
-  const handleBackFile     = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; const u = await uploadFile(f, 'backcover'); if (u) setBackCoverUrl(u); };
-  const handleCatFile      = async (e, cat) => { const f = e.target.files?.[0]; if (!f) return; e.target.value = ''; const u = await uploadFile(f, cat); if (u) setCatCovers(c => ({ ...c, [cat]: u })); };
+  const handleCoverFile   = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'cover');     if (u) setCoverUrl(u); };
+  const handleBackFile    = async (e) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f,'backcover'); if (u) setBackCoverUrl(u); };
+  const handleCatFile     = async (e, cat) => { const f = e.target.files?.[0]; if (!f) return; e.target.value=''; const u = await uploadFile(f, cat);  if (u) setCatCovers(c => ({ ...c, [cat]: u })); };
+
+  const handleLogoFile = async (e, slug) => {
+    const f = e.target.files?.[0]; if (!f) return; e.target.value='';
+    const u = await uploadFile(f, `logo-${slug}`);
+    if (u && onSaveLogo) onSaveLogo(slug, u);
+  };
 
   const handleSave = () => {
-    onSave(entitySlug, { coverUrl, backCoverUrl, template: 'moderno', showCategoryCovers, showBrandDividers }, catCovers);
+    onSave(entitySlug, { coverUrl, backCoverUrl, template:'moderno', showCategoryCovers, showBrandDividers }, catCovers);
     setSaved(true);
     setTimeout(() => setSaved(false), 2200);
   };
 
   const accent = entity?.accent || '#1A4A8C';
 
-  // ── Shared components ──────────────────────────────────────────────────────
   const IcnA = ({ name, ...p }) => { const C = window.lucide[name]; return C ? <C {...p} /> : null; };
 
   function Toggle({ value, onChange, label, desc }) {
@@ -141,7 +144,32 @@ function CatalogAdminView({
     );
   }
 
-  // ── Render ─────────────────────────────────────────────────────────────────
+  // Logo zone (16:9 ratio for logo previews)
+  function LogoZone({ logoUrl, onPickFile, onClear, loading, label }) {
+    return logoUrl ? (
+      <div className="relative bg-[#F4F6FB] border border-[#0F1B3D]/15 overflow-hidden flex items-center justify-center p-3" style={{ aspectRatio:'3/1', minHeight:'64px' }}>
+        <img src={logoUrl} alt={label} className="max-h-12 max-w-full object-contain" />
+        <div className="absolute inset-0 bg-black/0 hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 hover:opacity-100 gap-2">
+          <button onClick={onPickFile} className="px-3 py-1 bg-white text-[#0F1B3D] text-[10px] font-bold uppercase tracking-[0.14em]">
+            <IcnA name="RefreshCw" size={10} className="inline mr-1" />Trocar
+          </button>
+        </div>
+        <button onClick={onClear} className="absolute top-1.5 right-1.5 h-5 w-5 bg-black/50 hover:bg-black/70 flex items-center justify-center text-white">
+          <IcnA name="X" size={10} />
+        </button>
+      </div>
+    ) : (
+      <button onClick={onPickFile} disabled={!!loading}
+        className="w-full border-2 border-dashed border-[#0F1B3D]/20 hover:border-[#0F1B3D]/50 bg-[#F4F6FB] hover:bg-white transition-colors flex items-center justify-center gap-2 py-4 text-[#0F1B3D]/50 hover:text-[#0F1B3D] disabled:opacity-50"
+        style={{ minHeight:'64px' }}>
+        {loading
+          ? <><IcnA name="Loader" size={16} className="animate-spin" /><span className="text-[10px] font-bold uppercase tracking-[0.16em]">Enviando…</span></>
+          : <><IcnA name="ImagePlus" size={16} /><span className="text-[10px] font-bold uppercase tracking-[0.16em]">Enviar logo PNG/SVG</span></>
+        }
+      </button>
+    );
+  }
+
   return (
     <div className="h-screen bg-[#F4F6FB] flex flex-col overflow-hidden">
 
@@ -165,6 +193,11 @@ function CatalogAdminView({
           </div>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {onEditLayout && (
+            <GhostBtn onClick={onEditLayout} icon={<IcnA name="LayoutTemplate" size={14} />}>
+              Editar Layout
+            </GhostBtn>
+          )}
           <GhostBtn onClick={onPreview} icon={<IcnA name="Eye" size={14} />}>Pré-visualizar</GhostBtn>
           <PrimaryBtn onClick={handleSave} icon={saved ? <IcnA name="Check" size={14} /> : <IcnA name="Save" size={14} />}>
             {saved ? 'Salvo!' : 'Salvar'}
@@ -182,6 +215,62 @@ function CatalogAdminView({
             </div>
           )}
 
+          {/* ── Logotipos ───────────────────────────────────────────────────── */}
+          <section>
+            <SectionHeader icon="Award" title="Logotipos" desc="Exibido no cabeçalho de cada página de produto — PNG ou SVG transparente recomendado" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Logotipo da entidade principal */}
+              <div className="bg-white border border-[#0F1B3D]/10 p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="h-5 w-5 flex items-center justify-center text-white text-[9px] font-black shrink-0"
+                       style={{ background: accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 80% 100%, 0 100%)', fontFamily:"'Barlow Condensed', sans-serif" }}>
+                    {entity?.name?.slice(0,2).toUpperCase()}
+                  </div>
+                  <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0F1B3D]">{entity?.name}</span>
+                  {entityLogos?.[entitySlug] && (
+                    <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5">Com logo</span>
+                  )}
+                </div>
+                <input ref={el => { catRefs.current[`logo-${entitySlug}`] = el; }}
+                  type="file" accept="image/*" className="hidden"
+                  onChange={e => handleLogoFile(e, entitySlug)} />
+                <LogoZone
+                  logoUrl={entityLogos?.[entitySlug] || ''}
+                  loading={uploading === `logo-${entitySlug}`}
+                  label={entity?.name}
+                  onClear={() => onSaveLogo && onSaveLogo(entitySlug, '')}
+                  onPickFile={() => catRefs.current[`logo-${entitySlug}`]?.click()}
+                />
+              </div>
+
+              {/* Logotipos das marcas (se empresa-mãe) */}
+              {isParentCompany && brandList.map(brand => (
+                <div key={brand.slug} className="bg-white border border-[#0F1B3D]/10 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="h-5 w-5 flex items-center justify-center text-white text-[9px] font-black shrink-0"
+                         style={{ background: brand.accent || accent, clipPath: 'polygon(0 0, 100% 0, 100% 70%, 80% 100%, 0 100%)', fontFamily:"'Barlow Condensed', sans-serif" }}>
+                      {brand.name.slice(0,2).toUpperCase()}
+                    </div>
+                    <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#0F1B3D]">{brand.name}</span>
+                    {entityLogos?.[brand.slug] && (
+                      <span className="text-[9px] uppercase tracking-[0.15em] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5">Com logo</span>
+                    )}
+                  </div>
+                  <input ref={el => { catRefs.current[`logo-${brand.slug}`] = el; }}
+                    type="file" accept="image/*" className="hidden"
+                    onChange={e => handleLogoFile(e, brand.slug)} />
+                  <LogoZone
+                    logoUrl={entityLogos?.[brand.slug] || ''}
+                    loading={uploading === `logo-${brand.slug}`}
+                    label={brand.name}
+                    onClear={() => onSaveLogo && onSaveLogo(brand.slug, '')}
+                    onPickFile={() => catRefs.current[`logo-${brand.slug}`]?.click()}
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+
           {/* ── Portada ──────────────────────────────────────────────────── */}
           <section>
             <SectionHeader icon="BookOpen" title="Portada do Catálogo" desc="Primeira página do PDF — formato A4 vertical" />
@@ -189,7 +278,7 @@ function CatalogAdminView({
               <div>
                 <input ref={coverRef} type="file" accept="image/*" className="hidden" onChange={handleCoverFile} />
                 <ImgZone imgUrl={coverUrl} loading={uploading === 'cover'} label="Portada"
-                  hint="JPG, PNG · proporcão A4 recomendada (794 × 1122 px)"
+                  hint="JPG, PNG · proporção A4 recomendada (794 × 1122 px)"
                   onClear={() => setCoverUrl('')} onPickFile={() => coverRef.current?.click()} />
                 <p className="mt-2 text-[10px] text-[#0F1B3D]/45 uppercase tracking-[0.15em]">
                   Se vazio → gerado automaticamente com cores da marca
@@ -204,6 +293,12 @@ function CatalogAdminView({
                 <div className="text-[11px] text-[#0F1B3D]/60 leading-relaxed">
                   1 produto por página · Alta resolução (2×) · Exportação direta em PDF
                 </div>
+                {onEditLayout && (
+                  <button onClick={onEditLayout}
+                    className="mt-2 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] px-3 py-2 border border-[#0F1B3D]/20 text-[#0F1B3D]/70 hover:border-[#0F1B3D] hover:text-[#0F1B3D] transition-colors">
+                    <IcnA name="LayoutTemplate" size={12} /> Personalizar layout dos produtos
+                  </button>
+                )}
               </div>
             </div>
           </section>
@@ -212,14 +307,12 @@ function CatalogAdminView({
           <section className="bg-white border border-[#0F1B3D]/10 p-6">
             <SectionHeader icon="Settings" title="Opções de Estrutura" desc="Defina quais páginas separadoras serão incluídas" />
             <div className="space-y-5">
-
               <Toggle
                 value={showCategoryCovers}
                 onChange={setShowCategoryCovers}
                 label="Incluir separadores de categoria"
                 desc="Uma página divisória (com ou sem imagem) antes dos produtos de cada categoria"
               />
-
               {isParentCompany && (
                 <Toggle
                   value={showBrandDividers}
@@ -228,15 +321,14 @@ function CatalogAdminView({
                   desc="Página divisória antes dos produtos de cada marca — útil para catálogos multi-marca"
                 />
               )}
-
             </div>
           </section>
 
-          {/* ── Portadas de Marcas (só empresa-mãe) ──────────────────────── */}
+          {/* ── Portadas de Marcas ────────────────────────────────────────── */}
           {isParentCompany && showBrandDividers && (
             <section>
               <SectionHeader icon="Tag" title="Portadas por Marca"
-                desc={`Imagem de capa para cada marca de ${entity?.name} — aparece antes dos produtos da marca`} />
+                desc={`Imagem de capa para cada marca de ${entity?.name}`} />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 {brandList.map(brand => (
                   <div key={brand.slug} className="bg-white border border-[#0F1B3D]/10 p-4">
@@ -258,9 +350,8 @@ function CatalogAdminView({
                     <ImgZone
                       imgUrl={catCovers[`brand:${brand.slug}`] || ''}
                       loading={uploading === `brand:${brand.slug}`}
-                      label={brand.name}
-                      hint="JPG, PNG · 794 × 1122 px"
-                      onClear={() => setCatCovers(c => { const n = { ...c }; delete n[`brand:${brand.slug}`]; return n; })}
+                      label={brand.name} hint="JPG, PNG · 794 × 1122 px"
+                      onClear={() => setCatCovers(c => { const n={...c}; delete n[`brand:${brand.slug}`]; return n; })}
                       onPickFile={() => catRefs.current[`brand:${brand.slug}`]?.click()}
                     />
                   </div>
@@ -273,7 +364,7 @@ function CatalogAdminView({
           {showCategoryCovers && (
             <section>
               <SectionHeader icon="Layers" title="Portadas por Categoria"
-                desc="Página separadora antes dos produtos de cada categoria — opcional por categoria" />
+                desc="Página separadora antes dos produtos de cada categoria" />
               {allCats.length === 0 ? (
                 <div className="bg-white border border-[#0F1B3D]/10 py-10 text-center text-sm text-[#0F1B3D]/50">
                   Nenhuma categoria cadastrada para esta entidade.
@@ -294,7 +385,7 @@ function CatalogAdminView({
                         onChange={e => handleCatFile(e, cat)} />
                       <ImgZone imgUrl={catCovers[cat] || ''} loading={uploading === cat} label={cat}
                         hint="JPG, PNG · 794 × 1122 px"
-                        onClear={() => setCatCovers(c => { const n = { ...c }; delete n[cat]; return n; })}
+                        onClear={() => setCatCovers(c => { const n={...c}; delete n[cat]; return n; })}
                         onPickFile={() => catRefs.current[cat]?.click()} />
                     </div>
                   ))}
