@@ -219,7 +219,7 @@ function LayoutEditorView({
           </div>
 
           <div style={{ marginTop:'14px', fontSize:'10px', color:'rgba(255,255,255,0.25)', fontWeight:600, letterSpacing:'0.15em', textTransform:'uppercase' }}>
-            {A4W} × {A4H} px · 210 × 297 mm
+            {A4W} × {A4H} px · 297 × 210 mm
           </div>
         </div>
 

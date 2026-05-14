@@ -1,8 +1,9 @@
 // Pré-visualização e Exportação de Catálogo — USFORCE8
 const { useState: useStateCP, useMemo: useMemoCP, useRef: useRefCP } = React;
 
-const A4W = 794;
-const A4H = 1123;
+// A4 paisagem: 297 × 210 mm = 1123 × 794 px @ 96dpi
+const A4W = 1123;
+const A4H = 794;
 
 // ── Block system ──────────────────────────────────────────────────────────────
 
@@ -550,7 +551,7 @@ function CatalogPreviewView({
       await new Promise(r => setTimeout(r, 200));
 
       const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({ format:'a4', unit:'mm', orientation:'portrait', compress:true });
+      const doc = new jsPDF({ format:'a4', unit:'mm', orientation:'landscape', compress:true });
 
       for (let i = 0; i < pageRefs.current.length; i++) {
         const el = pageRefs.current[i];
@@ -563,7 +564,7 @@ function CatalogPreviewView({
         });
         const imgData = canvas.toDataURL('image/jpeg', 0.93);
         if (i > 0) doc.addPage();
-        doc.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+        doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
       }
 
       const fname = (entity?.name || entitySlug).toLowerCase().replace(/\s+/g,'-');
@@ -635,7 +636,7 @@ function CatalogPreviewView({
                 border: activeIdx === i ? `2px solid ${accent}` : '2px solid transparent',
                 background:'transparent', padding:'2px', cursor:'pointer', display:'block', width:'100%',
               }}>
-              <div style={{ width:'100%', aspectRatio:'210/297', background: activeIdx === i ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <div style={{ width:'100%', aspectRatio:'297/210', background: activeIdx === i ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)', display:'flex', alignItems:'center', justifyContent:'center' }}>
                 <span style={{ fontSize:'10px', fontWeight:700, color: activeIdx === i ? '#fff' : 'rgba(255,255,255,0.3)', fontFamily:'Inter,sans-serif' }}>{i + 1}</span>
               </div>
             </button>
@@ -645,7 +646,7 @@ function CatalogPreviewView({
         {/* Área principal */}
         <div style={{ flex:1, overflowY:'auto', padding:'32px', display:'flex', flexDirection:'column', alignItems:'center', gap:'28px' }}>
           <div style={{ fontSize:'10px', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.22em', color:'rgba(255,255,255,0.22)', fontFamily:'Inter,sans-serif', alignSelf:'flex-start' }}>
-            Catálogo completo · {pages.length} páginas A4 (210 × 297 mm)
+            Catálogo completo · {pages.length} páginas A4 paisagem (297 × 210 mm)
           </div>
 
           {pages.map((page, i) => {
