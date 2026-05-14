@@ -540,7 +540,28 @@ function SelectInput({ value, onChange, children, disabled }) {
 function CategoryManager({ categories, colors = {}, selected, onSelect, onAdd, onDelete, onSetColor }) {
   const [newCat,      setNewCat]      = useStateForm('');
   const [delConfirm,  setDelConfirm]  = useStateForm(null);
+  const [colorEdit,   setColorEdit]   = useStateForm(null); // { cat, value }
   const colorRefs = React.useRef({});
+
+  const parseColor = (val) => {
+    val = (val || '').trim();
+    if (!val) return null;
+    if (/^#[0-9a-fA-F]{6}$/.test(val)) return val.toLowerCase();
+    if (/^#[0-9a-fA-F]{3}$/.test(val)) return '#' + val.slice(1).split('').map(c => c+c).join('').toLowerCase();
+    if (/^[0-9a-fA-F]{6}$/.test(val)) return '#' + val.toLowerCase();
+    const m = val.match(/^rgba?\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+    if (m) return '#' + [m[1],m[2],m[3]].map(n => Math.min(255, parseInt(n)).toString(16).padStart(2,'0')).join('');
+    return null;
+  };
+
+  const openColor = (cat) => setColorEdit({ cat, value: colors[cat] || '#1A4A8C' });
+  const applyColor = () => {
+    if (!colorEdit) return;
+    const parsed = parseColor(colorEdit.value);
+    if (!parsed) { alert('Cor inválida. Use formato #RRGGBB ou rgb(r,g,b)'); return; }
+    onSetColor(colorEdit.cat, parsed);
+    setColorEdit(null);
+  };
 
   const handleAdd = () => {
     const name = newCat.trim();
@@ -573,27 +594,16 @@ function CategoryManager({ categories, colors = {}, selected, onSelect, onAdd, o
                     ? 'bg-[#0F1B3D] text-white border-[#0F1B3D]'
                     : 'bg-[#F4F6FB] text-[#0F1B3D] border-[#0F1B3D]/20 hover:border-[#0F1B3D]/50'}`}>
                 {onSetColor && (
-                  <>
-                    <input ref={el => { colorRefs.current[cat] = el; }} type="color" className="sr-only"
-                      defaultValue={catColor || '#1A4A8C'}
-                      onChange={e => onSetColor(cat, e.target.value)} />
-                    <button type="button" title="Cor da categoria"
-                      onClick={(e) => { e.stopPropagation(); colorRefs.current[cat]?.click(); }}
-                      className="pl-2 py-1.5 flex items-center">
-                      <span className="h-3 w-3 rounded-full border border-current/30"
-                            style={{ background: catColor || 'transparent', borderColor: catColor ? 'rgba(0,0,0,0.2)' : 'currentColor' }} />
-                    </button>
-                  </>
+                  <button type="button" title="Cor da categoria (hex ou rgb)"
+                    onClick={(e) => { e.stopPropagation(); openColor(cat); }}
+                    className="pl-2 py-1.5 flex items-center">
+                    <span className="h-3 w-3 rounded-full border border-current/30"
+                          style={{ background: catColor || 'transparent', borderColor: catColor ? 'rgba(0,0,0,0.2)' : 'currentColor' }} />
+                  </button>
                 )}
                 <button type="button" onClick={() => onSelect(cat)} className="px-3 py-1.5">
                   {cat}
                 </button>
-                {catColor && onSetColor && (
-                  <button type="button" title="Remover cor" onClick={(e) => { e.stopPropagation(); onSetColor(cat, null); }}
-                    className="pr-1 pl-0.5 py-1.5 opacity-0 group-hover:opacity-40 hover:!opacity-100">
-                    <I name="Paintbrush" size={10} />
-                  </button>
-                )}
                 <button type="button" onClick={() => handleDelete(cat)}
                   className={`pr-2.5 pl-1 py-1.5 transition-colors
                     ${delConfirm === cat
@@ -609,6 +619,38 @@ function CategoryManager({ categories, colors = {}, selected, onSelect, onAdd, o
         </div>
       ) : (
         <p className="text-xs text-[#0F1B3D]/40 italic">Nenhuma categoria ainda — crie a primeira abaixo.</p>
+      )}
+
+      {/* Editor de cor inline */}
+      {colorEdit && (
+        <div className="bg-[#F4F6FB] border border-[#0F1B3D]/15 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-[#0F1B3D]/70">
+              Cor de "{colorEdit.cat}"
+            </span>
+            <button type="button" onClick={() => setColorEdit(null)} className="text-[#0F1B3D]/50 hover:text-[#0F1B3D]"><I name="X" size={12} /></button>
+          </div>
+          <div className="flex items-center gap-2">
+            <input type="color" value={parseColor(colorEdit.value) || '#1A4A8C'}
+              onChange={e => setColorEdit({ ...colorEdit, value: e.target.value })}
+              className="h-9 w-12 cursor-pointer border border-[#0F1B3D]/15" />
+            <input type="text" value={colorEdit.value}
+              onChange={e => setColorEdit({ ...colorEdit, value: e.target.value })}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); applyColor(); } }}
+              placeholder="#RRGGBB ou rgb(r,g,b)"
+              className="flex-1 px-3 py-2 text-sm font-mono bg-white border border-[#0F1B3D]/15 focus:border-[#0F1B3D] outline-none" />
+            <button type="button" onClick={applyColor}
+              className="px-3 py-2 bg-[#0F1B3D] text-white text-[11px] font-bold uppercase tracking-[0.14em] hover:bg-[#1a2d5a]">
+              Aplicar
+            </button>
+            {colors[colorEdit.cat] && (
+              <button type="button" onClick={() => { onSetColor(colorEdit.cat, null); setColorEdit(null); }}
+                className="px-3 py-2 bg-white border border-[#0F1B3D]/20 text-[11px] font-bold uppercase tracking-[0.14em] text-[#0F1B3D]/70 hover:border-red-300 hover:text-red-600">
+                Remover
+              </button>
+            )}
+          </div>
+        </div>
       )}
 
       {/* Input para nova categoria */}
