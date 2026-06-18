@@ -95,7 +95,14 @@
       },
     };
 
-    return { from, auth };
+    // Realtime do Supabase — stub "faz nada" (sem live-sync; basta recarregar a página).
+    function channel() {
+      const ch = { on() { return ch; }, subscribe() { return ch; }, unsubscribe() { return Promise.resolve(); } };
+      return ch;
+    }
+    function removeChannel() { return Promise.resolve(); }
+
+    return { from, auth, channel, removeChannel };
   }
 
   window.makeUsforceClient = makeClient;
