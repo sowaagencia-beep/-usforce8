@@ -1,0 +1,35 @@
+# Render Blueprint — sobe o catálogo automaticamente.
+# Como usar: entrar em https://render.com (login com GitHub da conta dona do repo),
+# New + → Blueprint → escolher o repo sowaagencia-beep/-usforce8 → Apply.
+# O Render lê este arquivo e cria o serviço sozinho.
+services:
+  - type: web
+    name: catalogo-sowa
+    runtime: node
+    plan: free
+    region: oregon
+    branch: main
+    buildCommand: npm install
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /api/test
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      # Segredo do login gerado automaticamente pelo Render (forte e único)
+      - key: CATALOGO_JWT_SECRET
+        generateValue: true
+      # Login valida nos usuários do USFORCE
+      - key: NEXUS_API_BASE
+        value: https://api.usforce.com.br:8001
+      # --- Preencher no painel do Render (deixados em branco aqui de propósito) ---
+      # Banco: connection string do Postgres (nexusdb) OU deixar vazio = modo DEMO
+      - key: DATABASE_URL
+        sync: false
+      # Imagens (Dropbox) — colar os valores no painel
+      - key: DROPBOX_APP_KEY
+        sync: false
+      - key: DROPBOX_APP_SECRET
+        sync: false
+      - key: DROPBOX_REFRESH_TOKEN
+        sync: false
