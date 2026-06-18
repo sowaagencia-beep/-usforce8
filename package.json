@@ -1,7 +1,7 @@
 {
-  "name": "usforce8",
-  "version": "1.0.0",
-  "description": "USFORCE8 — Plataforma de Gestão Multi-Marca",
+  "name": "usforce8-catalogo",
+  "version": "2.0.0",
+  "description": "Catálogo de produtos multi-marca (Sowa) — app próprio que integra com o USFORCE",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,6 +10,8 @@
   "dependencies": {
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
-    "multer": "^2.1.1"
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.1.1",
+    "pg": "^8.13.1"
   }
 }

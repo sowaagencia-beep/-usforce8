@@ -23,8 +23,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
-<!-- Configurações públicas (Supabase URL + anon key) -->
+<!-- Configurações públicas -->
 <script src="config.js"></script>
+<!-- Cliente REST próprio (shim que substitui o Supabase) -->
+<script src="usforce-rest-client.js"></script>
 
 <style>
   :root { color-scheme: light; }
@@ -94,11 +96,9 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // ── Supabase client (null se não configurado) ─────────────────────────────
-    const _cfg = window.USFORCE_CONFIG?.supabase;
-    const sb   = (_cfg?.url && !_cfg.url.includes('COLE_AQUI'))
-      ? window.supabase.createClient(_cfg.url, _cfg.anonKey)
-      : null;
+    // ── Cliente de dados: banco próprio via API REST (shim Supabase-compatível) ─
+    // Ver usforce-rest-client.js. Login valida no USFORCE e usa token próprio.
+    const sb = window.makeUsforceClient ? window.makeUsforceClient('/api') : null;
 
     // ── Adaptadores DB ↔ App ──────────────────────────────────────────────────
     const fromDb = {

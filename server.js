@@ -9,12 +9,23 @@ const express = require('express');
 const path    = require('path');
 const fs      = require('fs');
 
+const { initDb } = require('./lib/initdb');
+const authRouter = require('./routes/auth');
+const dataRouter = require('./routes/data');
+const syncRouter = require('./routes/sync');
+
 const app  = express();
 const PORT = process.env.PORT || 3333;
 
 // ── Middleware ────────────────────────────────────────────────────────────────
 
 app.use(express.json({ limit: '25mb' }));
+
+// API do catálogo: banco próprio + auth com token próprio + sync USFORCE
+app.use('/api/auth', authRouter);
+app.use('/api/db',   dataRouter);
+app.use('/api/sync', syncRouter);
+
 app.use(express.static(__dirname));
 
 // Serve USFORCE8.html na raiz
@@ -343,6 +354,8 @@ app.use((err, req, res, _next) => {
 });
 
 // ── Start ─────────────────────────────────────────────────────────────────────
+
+initDb().catch((e) => console.error('[db] init falhou:', e.message));
 
 app.listen(PORT, () => {
   const hasToken = !!process.env.DROPBOX_REFRESH_TOKEN;
