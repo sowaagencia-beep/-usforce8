@@ -1,20 +1,16 @@
 // Componentes de marca USFORCE8
 
 function UsforceLogo({ size = 28, light = false }) {
-  // SVG viewBox is 1554×166 — set explicit width so browser renders it correctly
-  const w = Math.round(size * (1554 / 166));
+  // Wordmark em texto "SOWA AGÊNCIA" (substitui o logo antigo USFORCE8).
+  const color = light ? '#FFFFFF' : '#0F1B3D';
+  const accent = light ? '#BFD3FF' : '#1E5BC6';
   return (
-    <div className="flex items-center select-none" style={{ height: size, width: w }}>
-      <img
-        src="logo_usforce8.svg"
-        alt="USFORCE8"
-        width={w}
-        height={size}
-        style={{
-          display: 'block',
-          filter: light ? 'brightness(0) invert(1)' : 'none',
-        }}
-      />
+    <div
+      className="flex items-baseline select-none font-extrabold tracking-tight"
+      style={{ height: size, fontSize: Math.round(size * 0.78), lineHeight: 1, color }}
+    >
+      <span>SOWA</span>
+      <span style={{ color: accent, marginLeft: '0.28em' }}>AGÊNCIA</span>
     </div>
   );
 }
